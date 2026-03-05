@@ -1,0 +1,1334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="UPSC Prep">
+<meta name="theme-color" content="#12100E">
+<meta name="description" content="UPSC Statement-based MCQ Practice App">
+<link rel="manifest" id="manifest-link">
+<title>UPSC Prep</title>
+<style>
+:root {
+  --ink: #12100E;
+  --parchment: #F7F1E8;
+  --warm: #EDE7DA;
+  --saffron: #D4541A;
+  --gold: #B8882A;
+  --sage: #4A7C6F;
+  --muted: #8A7F74;
+  --border: rgba(18,16,14,0.12);
+  --serif: 'Palatino Linotype','Book Antiqua',Palatino,serif;
+  --sans: 'Segoe UI',system-ui,-apple-system,sans-serif;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background: var(--parchment);
+  color: var(--ink);
+  font-family: var(--sans);
+  min-height: 100vh;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23B8882A' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* HEADER */
+header {
+  background: var(--ink); padding: 0 28px;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 58px; position: sticky; top: 0; z-index: 100;
+}
+.logo { font-family: var(--serif); font-size: 19px; color: var(--parchment); letter-spacing: 1px; }
+.logo em { color: #F07030; font-style: normal; }
+.hstats { display: flex; gap: 16px; }
+.hstat { font-size: 12px; color: rgba(247,241,232,0.5); display: flex; align-items: center; gap: 4px; }
+.hstat strong { color: var(--parchment); font-weight: 600; }
+
+/* NAV */
+.nav { background: var(--warm); border-bottom: 2px solid var(--border); display: flex; padding: 0 28px; overflow-x: auto; }
+.nav-tab { padding: 12px 16px; font-size: 13px; font-weight: 500; color: var(--muted); cursor: pointer; border: none; background: transparent; border-bottom: 3px solid transparent; margin-bottom: -2px; transition: all .2s; font-family: var(--sans); white-space: nowrap; }
+.nav-tab:hover { color: var(--ink); }
+.nav-tab.active { color: var(--saffron); border-bottom-color: var(--saffron); font-weight: 600; }
+
+main { max-width: 800px; margin: 0 auto; padding: 28px 18px 70px; }
+
+/* PANEL */
+.panel { background: #fff; border: 1px solid var(--border); border-radius: 16px; padding: 24px; margin-bottom: 18px; box-shadow: 0 2px 10px rgba(18,16,14,.05); }
+.sec-lbl { font-size: 10px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; display: flex; align-items: center; gap: 10px; }
+.sec-lbl::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+/* DRAW BTN */
+.draw-btn { width: 100%; padding: 15px; background: var(--ink); color: var(--parchment); border: none; border-radius: 12px; font-family: var(--sans); font-size: 15px; font-weight: 600; cursor: pointer; transition: all .22s; display: flex; align-items: center; justify-content: center; gap: 10px; }
+.draw-btn:hover { background: var(--saffron); transform: translateY(-1px); box-shadow: 0 8px 24px rgba(212,84,26,.2); }
+.draw-btn:active { transform: translateY(0); }
+
+/* PROGRESS */
+.prog-row { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 5px; }
+.prog-bar { height: 3px; background: var(--border); border-radius: 2px; margin-bottom: 22px; }
+.prog-fill { height: 100%; background: linear-gradient(90deg, var(--saffron), var(--gold)); border-radius: 2px; transition: width .4s; }
+
+/* QUESTION CARD */
+.q-card { background: #fff; border: 1px solid var(--border); border-radius: 16px; overflow: hidden; margin-bottom: 16px; box-shadow: 0 2px 12px rgba(18,16,14,.06); animation: rise .3s ease; }
+@keyframes rise { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+
+.q-card-header { padding: 20px 24px 0; }
+.q-meta { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
+.q-badge { font-size: 10px; font-weight: 600; letter-spacing: .5px; text-transform: uppercase; padding: 3px 9px; border-radius: 5px; }
+.q-num { font-size: 11px; color: var(--muted); margin-left: auto; }
+.q-stem { font-family: var(--serif); font-size: 19px; font-weight: 600; line-height: 1.55; color: var(--ink); margin-bottom: 18px; }
+.q-instruction { font-size: 12px; color: var(--muted); background: var(--warm); border-radius: 8px; padding: 8px 12px; margin-bottom: 18px; display: flex; align-items: center; gap: 6px; }
+
+/* STATEMENTS */
+.statements-box { padding: 0 24px; margin-bottom: 20px; }
+.stmt-list { display: flex; flex-direction: column; gap: 10px; }
+.stmt {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 13px 15px;
+  border: 1.5px solid var(--border);
+  border-radius: 11px;
+  background: var(--warm);
+  font-size: 14px; line-height: 1.5;
+  transition: all .2s;
+}
+.stmt-num {
+  width: 24px; height: 24px; flex-shrink: 0;
+  border-radius: 6px; background: white;
+  border: 1.5px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 12px; color: var(--muted);
+  margin-top: 1px;
+}
+.stmt-text { flex: 1; }
+
+/* After answer revealed */
+.stmt.revealed-correct { border-color: #BBF7D0; background: #F0FDF4; }
+.stmt.revealed-correct .stmt-num { background: #16A34A; color: white; border-color: #16A34A; }
+.stmt.revealed-wrong { border-color: #FECACA; background: #FEF2F2; }
+.stmt.revealed-wrong .stmt-num { background: #DC2626; color: white; border-color: #DC2626; }
+.stmt-verdict { font-size: 12px; font-weight: 600; margin-top: 4px; }
+.stmt.revealed-correct .stmt-verdict { color: #16A34A; }
+.stmt.revealed-wrong .stmt-verdict { color: #DC2626; }
+
+/* MCQ OPTIONS */
+.options-section { padding: 0 24px 20px; }
+.opts-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+.opts-grid { display: flex; flex-direction: column; gap: 9px; }
+.opt {
+  display: flex; align-items: center; gap: 12px;
+  padding: 13px 16px;
+  border: 2px solid var(--border);
+  border-radius: 11px;
+  background: var(--warm);
+  cursor: pointer;
+  transition: all .18s;
+  font-size: 14px; color: var(--ink);
+  font-family: var(--sans);
+  text-align: left; width: 100%;
+}
+.opt:hover:not(.disabled) { border-color: rgba(18,16,14,.25); background: white; transform: translateX(3px); }
+.opt.disabled { cursor: default; }
+.opt-bubble {
+  width: 30px; height: 30px; flex-shrink: 0;
+  border-radius: 50%; border: 2px solid rgba(18,16,14,.15);
+  background: white;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 12px;
+  transition: all .18s;
+}
+.opt.chosen-correct { border-color: #16A34A; background: #F0FDF4; }
+.opt.chosen-correct .opt-bubble { background: #16A34A; color: white; border-color: #16A34A; }
+.opt.chosen-wrong { border-color: #DC2626; background: #FEF2F2; }
+.opt.chosen-wrong .opt-bubble { background: #DC2626; color: white; border-color: #DC2626; }
+.opt.reveal-correct { border-color: #16A34A; background: #F0FDF4; }
+.opt.reveal-correct .opt-bubble { background: #16A34A; color: white; border-color: #16A34A; }
+.opt-icon { margin-left: auto; font-size: 18px; }
+
+/* RESULT */
+.result-box { margin: 0 24px 20px; border-radius: 12px; padding: 16px 18px; font-size: 14px; line-height: 1.6; display: none; }
+.result-box.correct { background: #F0FDF4; border: 1px solid #BBF7D0; color: #15803D; }
+.result-box.wrong { background: #FEF2F2; border: 1px solid #FECACA; color: #B91C1C; }
+
+.next-btn { display: none; margin: 0 24px 24px; width: calc(100% - 48px); padding: 13px; background: var(--ink); color: var(--parchment); border: none; border-radius: 11px; font-family: var(--sans); font-size: 15px; font-weight: 600; cursor: pointer; transition: all .2s; }
+.next-btn:hover { background: var(--saffron); }
+
+/* EMPTY */
+.empty { text-align: center; padding: 50px 20px; color: var(--muted); }
+.empty .ei { font-size: 38px; margin-bottom: 12px; }
+.empty h3 { font-family: var(--serif); font-size: 21px; color: var(--ink); margin-bottom: 6px; }
+
+/* ADD FORM */
+.form-group { margin-bottom: 13px; }
+.form-lbl { display: block; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+.finput, .fsel, .ftextarea { width: 100%; padding: 11px 13px; background: var(--warm); border: 1.5px solid var(--border); border-radius: 10px; color: var(--ink); font-family: var(--sans); font-size: 14px; outline: none; resize: none; transition: border-color .2s; }
+.finput:focus, .ftextarea:focus, .fsel:focus { border-color: var(--saffron); background: white; }
+.frow { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* STATEMENT BUILDER */
+.stmt-builder { display: flex; flex-direction: column; gap: 9px; margin-bottom: 10px; }
+.stmt-build-row {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--warm); border: 1.5px solid var(--border);
+  border-radius: 10px; padding: 10px 12px;
+}
+.stmt-build-num { width: 24px; height: 24px; border-radius: 6px; background: white; border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px; color: var(--muted); flex-shrink: 0; }
+.stmt-build-input { flex: 1; padding: 8px 10px; background: white; border: 1.5px solid var(--border); border-radius: 8px; font-family: var(--sans); font-size: 13px; color: var(--ink); outline: none; }
+.stmt-build-input:focus { border-color: var(--saffron); }
+.tf-toggle {
+  display: flex; border-radius: 8px; overflow: hidden;
+  border: 1.5px solid var(--border); flex-shrink: 0;
+}
+.tf-btn {
+  padding: 6px 12px; font-size: 12px; font-weight: 600;
+  cursor: pointer; border: none; background: white; color: var(--muted);
+  font-family: var(--sans); transition: all .15s;
+}
+.tf-btn.true-active  { background: #16A34A; color: white; }
+.tf-btn.false-active { background: #DC2626; color: white; }
+.del-stmt-btn { background: #FEF2F2; border: 1px solid #FECACA; color: #DC2626; border-radius: 7px; padding: 6px 9px; cursor: pointer; font-size: 12px; flex-shrink: 0; }
+
+.add-stmt-btn { padding: 9px 16px; border-radius: 9px; border: 1.5px dashed var(--gold); background: transparent; color: var(--gold); font-family: var(--sans); font-size: 13px; font-weight: 500; cursor: pointer; transition: all .2s; display: inline-flex; align-items: center; gap: 6px; }
+.add-stmt-btn:hover { background: rgba(184,136,42,.08); }
+
+.submit-btn { padding: 12px 22px; background: var(--sage); border: none; border-radius: 10px; color: white; font-family: var(--sans); font-size: 14px; font-weight: 600; cursor: pointer; transition: all .2s; display: inline-flex; align-items: center; gap: 7px; }
+.submit-btn:hover { transform: translateY(-1px); box-shadow: 0 5px 16px rgba(74,124,111,.3); }
+.sample-btn { padding: 12px 22px; background: transparent; border: 1.5px solid var(--gold); border-radius: 10px; color: var(--gold); font-family: var(--sans); font-size: 14px; font-weight: 500; cursor: pointer; transition: all .2s; display: inline-flex; align-items: center; gap: 7px; }
+.sample-btn:hover { background: rgba(184,136,42,.08); }
+.feedback { font-size: 13px; color: var(--sage); margin-top: 10px; display: none; font-weight: 500; }
+
+/* HINT BOX */
+.hint-box { background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 10px; padding: 12px 15px; margin-bottom: 16px; font-size: 13px; color: #1E40AF; line-height: 1.6; }
+
+/* MANAGE */
+.q-item { border: 1px solid var(--border); border-radius: 10px; padding: 13px 15px; margin-bottom: 9px; background: white; }
+.q-item-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.q-tags { display: flex; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
+.q-tag { font-size: 10px; font-weight: 600; letter-spacing: .5px; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; }
+.q-question-text { font-size: 13px; color: var(--ink); font-weight: 500; margin-bottom: 5px; }
+.q-stmts-preview { font-size: 11px; color: var(--muted); line-height: 1.6; }
+.del-q { background: #FEF2F2; border: 1px solid #FECACA; color: #DC2626; border-radius: 7px; padding: 6px 10px; cursor: pointer; font-size: 12px; flex-shrink: 0; }
+.edit-q { background: #EFF6FF; border: 1px solid #BFDBFE; color: #1D4ED8; border-radius: 7px; padding: 6px 10px; cursor: pointer; font-size: 12px; flex-shrink: 0; }
+.edit-q:hover { background: #DBEAFE; }
+.edit-banner { background: #FEF3C7; border: 1.5px solid #FCD34D; border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; font-size: 13px; color: #92400E; display: none; align-items: center; gap: 10px; justify-content: space-between; flex-wrap: wrap; }
+.cancel-edit-btn { padding: 6px 14px; background: white; border: 1px solid #FCD34D; border-radius: 7px; color: #92400E; font-size: 12px; font-weight: 600; cursor: pointer; font-family: var(--sans); }
+
+@media(max-width:580px){
+  .frow { grid-template-columns: 1fr; }
+  header { padding: 0 14px; } .nav { padding: 0 8px; }
+  main { padding: 16px 12px 70px; }
+  .q-card-header, .statements-box, .options-section { padding-left: 16px; padding-right: 16px; }
+  .result-box, .next-btn { margin-left: 16px; margin-right: 16px; }
+  .next-btn { width: calc(100% - 32px); }
+  .q-stem { font-size: 16px; }
+}
+
+/* EXPLANATION IMAGE */
+.img-upload-area {
+  border: 2px dashed var(--gold);
+  border-radius: 10px;
+  padding: 14px 16px;
+  text-align: center;
+  cursor: pointer;
+  background: rgba(184,136,42,.04);
+  transition: all .2s;
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--gold);
+  font-weight: 500;
+}
+.img-upload-area:hover { background: rgba(184,136,42,.1); }
+.img-preview-wrap {
+  position: relative;
+  margin-top: 10px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1.5px solid var(--border);
+  display: none;
+}
+.img-preview-wrap img {
+  width: 100%;
+  max-height: 280px;
+  object-fit: contain;
+  background: var(--warm);
+  display: block;
+}
+.img-remove-btn {
+  position: absolute;
+  top: 8px; right: 8px;
+  background: rgba(0,0,0,.6);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: var(--sans);
+}
+.img-remove-btn:hover { background: #DC2626; }
+.exp-img-display {
+  margin-top: 12px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.exp-img-display img {
+  width: 100%;
+  max-height: 340px;
+  object-fit: contain;
+  background: var(--warm);
+  display: block;
+  cursor: pointer;
+}
+/* Lightbox */
+#img-lightbox {
+  display: none;
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(0,0,0,.88);
+  align-items: center; justify-content: center;
+  padding: 20px;
+}
+#img-lightbox.open { display: flex; }
+#img-lightbox img {
+  max-width: 100%; max-height: 90vh;
+  border-radius: 10px;
+  object-fit: contain;
+}
+#img-lightbox-close {
+  position: fixed; top: 16px; right: 16px;
+  background: rgba(255,255,255,.15);
+  color: white; border: none;
+  border-radius: 50%; width: 38px; height: 38px;
+  font-size: 20px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* EXPORT / IMPORT */
+.export-bar { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px; align-items:center; }
+.exp-btn { padding:11px 20px; border-radius:10px; border:none; font-family:var(--sans); font-size:13px; font-weight:600; cursor:pointer; transition:all .2s; display:inline-flex; align-items:center; gap:7px; }
+.exp-btn.export { background:var(--sage); color:white; }
+.exp-btn.export:hover { transform:translateY(-1px); box-shadow:0 5px 16px rgba(74,124,111,.3); }
+.exp-btn.import { background:transparent; border:1.5px solid var(--slate,#3B5068); color:var(--slate,#3B5068); }
+.exp-btn.import:hover { background:rgba(59,80,104,.07); }
+.exp-btn.danger { background:transparent; border:1.5px solid #DC2626; color:#DC2626; }
+.exp-btn.danger:hover { background:#FEF2F2; }
+.import-info { font-size:12px; color:var(--muted); line-height:1.6; background:var(--warm); border-radius:8px; padding:10px 13px; }
+#import-file-input { display:none; }
+
+
+/* PAGE LOADER */
+#page-loader {
+  position: fixed; inset: 0; z-index: 99999;
+  background: var(--parchment);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 18px;
+}
+.loader-logo { font-family: var(--serif); font-size: 28px; color: var(--ink); letter-spacing: 1px; }
+.loader-logo em { color: #F07030; font-style: normal; }
+.loader-spinner {
+  width: 40px; height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--saffron);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+.loader-text { font-size: 13px; color: var(--muted); }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* STORAGE BAR */
+.storage-bar-wrap { margin-bottom: 14px; }
+.storage-bar-label { font-size: 11px; color: var(--muted); margin-bottom: 5px; display: flex; justify-content: space-between; }
+.storage-bar { height: 4px; background: var(--border); border-radius: 2px; }
+.storage-bar-fill { height: 100%; border-radius: 2px; transition: width .4s; background: var(--sage); }
+.storage-bar-fill.warn { background: var(--gold); }
+.storage-bar-fill.danger { background: var(--saffron); }
+
+/* INSTALL BAR */
+#install-bar {
+  display: none;
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 9999;
+  background: #12100E; color: #F7F1E8;
+  padding: 14px 20px;
+  align-items: center; justify-content: space-between; gap: 12px;
+  font-family: 'Segoe UI', sans-serif; font-size: 14px;
+  box-shadow: 0 -4px 24px rgba(0,0,0,0.35);
+  flex-wrap: wrap;
+}
+#install-bar .ib-text { display:flex; align-items:center; gap:10px; }
+#install-bar .ib-icon { font-size:22px; }
+#install-bar .ib-install {
+  padding: 10px 22px; background: #D4541A; color: white;
+  border: none; border-radius: 9px; font-size: 14px; font-weight: 700;
+  cursor: pointer; font-family: inherit; white-space: nowrap;
+}
+#install-bar .ib-close {
+  background: transparent; color: rgba(247,241,232,0.5);
+  border: none; font-size: 18px; cursor: pointer; padding: 4px 8px;
+}
+
+</style>
+
+<script>
+// ── PWA MANIFEST (inline, no server needed) ───────────────────────────────
+const MANIFEST = {
+  name: "UPSC Prep",
+  short_name: "UPSC Prep",
+  description: "Statement-based MCQ practice for UPSC",
+  start_url: ".",
+  display: "standalone",
+  background_color: "#F7F1E8",
+  theme_color: "#12100E",
+  orientation: "portrait",
+  icons: [
+    {
+      src: "data:image/svg+xml," + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='80' fill='%2312100E'/><text x='256' y='340' font-size='300' text-anchor='middle' fill='%23F07030'>🏛</text></svg>`),
+      sizes: "512x512",
+      type: "image/svg+xml",
+      purpose: "any maskable"
+    }
+  ]
+};
+const mBlob = new Blob([JSON.stringify(MANIFEST)], {type:'application/json'});
+const mURL  = URL.createObjectURL(mBlob);
+document.getElementById('manifest-link').setAttribute('href', mURL);
+
+// ── SERVICE WORKER (inline blob) ──────────────────────────────────────────
+const SW_CODE = `
+const CACHE = 'upsc-prep-v1';
+self.addEventListener('install', e => {
+  self.skipWaiting();
+});
+self.addEventListener('activate', e => {
+  e.waitUntil(self.clients.claim());
+});
+self.addEventListener('fetch', e => {
+  e.respondWith(
+    caches.match(e.request).then(r => r || fetch(e.request))
+  );
+});
+`;
+if ('serviceWorker' in navigator) {
+  const swBlob = new Blob([SW_CODE], {type:'application/javascript'});
+  const swURL  = URL.createObjectURL(swBlob);
+  navigator.serviceWorker.register(swURL, {scope: '/'})
+    .then(() => console.log('SW registered'))
+    .catch(e => console.log('SW error (normal for file://):', e));
+}
+
+// ── INSTALL PROMPT ────────────────────────────────────────────────────────
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('install-bar').style.display = 'flex';
+});
+window.addEventListener('appinstalled', () => {
+  document.getElementById('install-bar').style.display = 'none';
+  deferredPrompt = null;
+});
+function triggerInstall() {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(() => {
+      deferredPrompt = null;
+      document.getElementById('install-bar').style.display = 'none';
+    });
+  }
+}
+</script>
+
+</head>
+<body>
+<!-- PWA INSTALL BAR -->
+<!-- PAGE LOADER -->
+<div id="page-loader">
+  <div class="loader-logo">UPSC <em>Prep</em></div>
+  <div class="loader-spinner"></div>
+  <div class="loader-text">Loading your questions…</div>
+</div>
+
+<div id="install-bar">
+  <div class="ib-text">
+    <span class="ib-icon">📲</span>
+    <div>
+      <div style="font-weight:600;">Install UPSC Prep as an App</div>
+      <div style="font-size:12px;opacity:.6;">Works offline · No browser bar · Like a real app</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <button class="ib-install" onclick="triggerInstall()">Install Now</button>
+    <button class="ib-close" onclick="document.getElementById('install-bar').style.display='none'">✕</button>
+  </div>
+</div>
+
+<header>
+  <div class="logo">UPSC <em>Prep</em></div>
+  <div class="hstats">
+    <div class="hstat">Qs <strong id="h-total">0</strong></div>
+    <div class="hstat">✅ <strong id="h-correct">0</strong></div>
+    <div class="hstat">❌ <strong id="h-wrong">0</strong></div>
+    <div class="hstat">Score <strong id="h-score">—</strong></div>
+  </div>
+</header>
+
+<div class="nav">
+  <button class="nav-tab active" onclick="switchTab('study')">📝 Practice</button>
+  <button class="nav-tab" onclick="switchTab('add')">➕ Add Question</button>
+  <button class="nav-tab" onclick="switchTab('manage')">📋 Manage</button>
+</div>
+
+<main>
+
+  <!-- ══ PRACTICE ══ -->
+  <div id="tab-study">
+    <div class="panel">
+      <div class="sec-lbl">How it works</div>
+      <div class="hint-box">
+        🎲 Each draw randomly picks <strong>3–5 statements</strong> from your question's statement bank. The app counts how many shown statements are correct and <strong>auto-generates the MCQ answer options</strong> for you.
+      </div>
+      <button class="draw-btn" onclick="drawQuestion()">🎲 &nbsp;Draw a Random Question</button>
+    </div>
+    <div id="question-zone">
+      <div class="empty">
+        <div class="ei">📖</div>
+        <h3>Ready to practise?</h3>
+        <p>Add questions via "Add Question" or load samples, then hit Draw!</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ ADD ══ -->
+  <div id="tab-add" style="display:none">
+    <div class="panel">
+      <div class="sec-lbl" id="add-tab-title">New Statement-Based Question</div>
+      <div class="edit-banner" id="edit-banner">
+        <span>✏️ Editing question — make your changes below</span>
+        <button class="cancel-edit-btn" onclick="cancelEdit()">✕ Cancel Edit</button>
+      </div>
+
+      <div class="hint-box" style="margin-bottom:16px;">
+        💡 Add the question stem, then add as many statements as you like. Mark each statement <strong>True ✓</strong> or <strong>False ✗</strong>. The app will randomly pick 3–5 statements per draw and auto-calculate the correct answer.
+      </div>
+
+      <div class="frow">
+        <div class="form-group">
+          <label class="form-lbl">Topic</label>
+          <select class="fsel" id="n-topic">
+            <option>History</option><option>Geography</option><option>Polity</option>
+            <option>Economy</option><option>Science & Tech</option><option>Environment</option>
+            <option>Current Affairs</option><option>Ethics</option><option>Art & Culture</option>
+            <option>International Relations</option><option>Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-lbl">Difficulty</label>
+          <select class="fsel" id="n-diff">
+            <option value="Easy">Easy</option>
+            <option value="Medium" selected>Medium</option>
+            <option value="Hard">Hard</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-lbl">Question Stem</label>
+        <textarea class="ftextarea" id="n-stem" rows="2"
+          placeholder="e.g. Consider the following statements about the Indian Constitution:"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-lbl">
+          Statements &nbsp;
+          <span style="color:var(--muted);font-size:10px;font-weight:400;letter-spacing:0;">— mark each True ✓ or False ✗</span>
+        </label>
+        <div class="stmt-builder" id="stmt-builder"></div>
+        <button class="add-stmt-btn" onclick="addStmtRow()">＋ Add Statement</button>
+      </div>
+
+      <div class="form-group">
+        <label class="form-lbl">Explanation <span style="font-weight:400;color:var(--muted);letter-spacing:0;">(optional — shown after answering)</span></label>
+        <textarea class="ftextarea" id="n-exp" rows="2" placeholder="Key facts or context to remember..."></textarea>
+        <!-- Image for explanation -->
+        <input type="file" id="exp-img-input" accept="image/*" style="display:none" onchange="handleExpImg(event)">
+        <div class="img-upload-area" onclick="document.getElementById('exp-img-input').click()">
+          🖼️ &nbsp;Attach an image to explanation (optional)
+        </div>
+        <div class="img-preview-wrap" id="exp-img-preview-wrap">
+          <img id="exp-img-preview" src="" alt="Preview">
+          <button class="img-remove-btn" onclick="removeExpImg()">✕ Remove</button>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="submit-btn" id="submit-btn" onclick="submitQuestion()">➕ Add Question</button>
+        <button class="sample-btn" onclick="loadSamples()">📥 Load Sample Questions</button>
+      </div>
+      <div class="feedback" id="add-fb"></div>
+    </div>
+  </div>
+
+  <!-- ══ MANAGE ══ -->
+  <div id="tab-manage" style="display:none">
+    <div class="panel">
+      <div class="sec-lbl">Backup &amp; Restore</div>
+      <div class="storage-bar-wrap" id="storage-bar-wrap"></div>
+      <div class="export-bar">
+        <button class="exp-btn export" onclick="exportQuestions()">📤 Export Questions</button>
+        <button class="exp-btn import" onclick="document.getElementById('import-file-input').click()">📥 Import Questions</button>
+        <button class="exp-btn danger" onclick="clearAll()">🗑 Clear All</button>
+        <input type="file" id="import-file-input" accept=".json" onchange="importQuestions(event)">
+      </div>
+      <div class="import-info">
+        <strong>Export</strong> saves all your questions as a <code>.json</code> file — keep it as a backup or transfer to another device.<br>
+        <strong>Import</strong> loads questions from a previously exported file. Choose whether to <em>add to</em> or <em>replace</em> existing questions.
+      </div>
+    </div>
+    <div class="panel">
+      <div class="sec-lbl">All Questions (<span id="manage-count">0</span>)</div>
+      <div id="manage-list"></div>
+    </div>
+  </div>
+
+</main>
+
+<!-- Lightbox for full-size image -->
+<div id="img-lightbox" onclick="closeLightbox()">
+  <button id="img-lightbox-close" onclick="closeLightbox()">✕</button>
+  <img id="img-lightbox-img" src="" alt="Full size">
+</div>
+
+<script>
+const DIFF_COLORS = { Easy:'#4A7C6F', Medium:'#B8882A', Hard:'#8A3B3B' };
+
+// ── STATE ─────────────────────────────────────────────────────────────────
+let S = JSON.parse(localStorage.getItem('upsc_stmt_v1') || 'null') || {
+  questions: []
+};
+let session = { correct: 0, wrong: 0, seen: new Set() };
+let currentQ = null;
+let currentShownStmts = [];   // the randomly picked subset shown this draw
+let answered = false;
+
+function persist() {
+  try {
+    localStorage.setItem('upsc_stmt_v1', JSON.stringify(S));
+  } catch(e) {
+    // Storage quota exceeded
+    alert('⚠️ Storage is full! Your question was NOT saved.\n\nTip: Go to Manage → Export your questions as a backup, then clear some space by deleting old questions.');
+    return false;
+  }
+  return true;
+}
+function save() { if(persist()) { renderStats(); renderStorageBar(); } }
+
+// ── HIDE PAGE LOADER ──────────────────────────────────────────────────────
+window.addEventListener('load', function() {
+  setTimeout(function() {
+    const loader = document.getElementById('page-loader');
+    if (loader) {
+      loader.style.opacity = '0';
+      loader.style.transition = 'opacity .4s';
+      setTimeout(() => loader.style.display = 'none', 400);
+    }
+  }, 300);
+});
+
+// ── STORAGE SIZE INDICATOR ────────────────────────────────────────────────
+function renderStorageBar() {
+  const wrap = document.getElementById('storage-bar-wrap');
+  if (!wrap) return;
+  try {
+    const data = localStorage.getItem('upsc_stmt_v1') || '';
+    const bytes = new Blob([data]).size;
+    const kb = (bytes / 1024).toFixed(1);
+    // localStorage typical limit ~5MB
+    const pct = Math.min((bytes / (5 * 1024 * 1024)) * 100, 100).toFixed(1);
+    const colorClass = pct > 80 ? 'danger' : pct > 50 ? 'warn' : '';
+    wrap.innerHTML = `
+      <div class="storage-bar-label">
+        <span>📦 Storage used: <strong>${kb} KB</strong></span>
+        <span>${pct}% of ~5 MB limit</span>
+      </div>
+      <div class="storage-bar"><div class="storage-bar-fill ${colorClass}" style="width:${pct}%"></div></div>
+      ${pct > 70 ? `<div style="font-size:11px;color:var(--saffron);margin-top:5px;">⚠️ Storage getting full — export a backup and consider removing large images.</div>` : ''}
+    `;
+  } catch(e) {}
+}
+
+// ── EXPLANATION IMAGE ─────────────────────────────────────────────────────
+let currentExpImageB64 = null;   // holds base64 while editing/adding
+
+// Compress image using canvas before storing
+function compressImage(dataURL, maxPx, quality) {
+  return new Promise(function(resolve) {
+    const img = new Image();
+    img.onload = function() {
+      let w = img.width, h = img.height;
+      if (w > maxPx || h > maxPx) {
+        if (w > h) { h = Math.round(h * maxPx / w); w = maxPx; }
+        else       { w = Math.round(w * maxPx / h); h = maxPx; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = function() { resolve(dataURL); }; // fallback: use original
+    img.src = dataURL;
+  });
+}
+
+function handleExpImg(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (file.size > 10 * 1024 * 1024) {
+    alert('Image too large. Please use an image under 10 MB.');
+    event.target.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = async function(e) {
+    // Compress: max 800px wide/tall, JPEG quality 0.72
+    const compressed = await compressImage(e.target.result, 800, 0.72);
+    const origKB = Math.round(e.target.result.length * 0.75 / 1024);
+    const newKB  = Math.round(compressed.length * 0.75 / 1024);
+    currentExpImageB64 = compressed;
+    const wrap = document.getElementById('exp-img-preview-wrap');
+    const img  = document.getElementById('exp-img-preview');
+    img.src = compressed;
+    wrap.style.display = 'block';
+    if (origKB > newKB + 10) {
+      const fb = document.getElementById('add-fb');
+      fb.textContent = `🗜️ Image compressed: ${origKB} KB → ${newKB} KB`;
+      fb.style.display = 'block';
+      setTimeout(() => fb.style.display='none', 3000);
+    }
+  };
+  reader.readAsDataURL(file);
+  event.target.value = '';
+}
+
+function removeExpImg() {
+  currentExpImageB64 = null;
+  document.getElementById('exp-img-preview').src = '';
+  document.getElementById('exp-img-preview-wrap').style.display = 'none';
+}
+
+function loadExpImgIntoForm(b64) {
+  // Used when editing an existing question that already has an image
+  if (!b64) { removeExpImg(); return; }
+  currentExpImageB64 = b64;
+  const wrap = document.getElementById('exp-img-preview-wrap');
+  const img  = document.getElementById('exp-img-preview');
+  img.src = b64;
+  wrap.style.display = 'block';
+}
+
+// Lightbox
+function openLightbox(src) {
+  document.getElementById('img-lightbox-img').src = src;
+  document.getElementById('img-lightbox').classList.add('open');
+}
+function closeLightbox() {
+  document.getElementById('img-lightbox').classList.remove('open');
+  document.getElementById('img-lightbox-img').src = '';
+}
+
+function renderStats() {
+  document.getElementById('h-total').textContent   = S.questions.length;
+  document.getElementById('h-correct').textContent = session.correct;
+  document.getElementById('h-wrong').textContent   = session.wrong;
+  const t = session.correct + session.wrong;
+  document.getElementById('h-score').textContent   = t ? Math.round(session.correct/t*100)+'%' : '—';
+}
+
+// ── SHUFFLE HELPER ────────────────────────────────────────────────────────
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length-1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i+1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ── GENERATE MCQ OPTIONS ──────────────────────────────────────────────────
+// Given the shown statements, figure out which ones are correct,
+// then build 4 plausible MCQ answer options including the real answer.
+function generateOptions(shownStmts) {
+  const n = shownStmts.length;
+  const correctIndices = shownStmts
+    .map((s,i) => s.correct ? i+1 : null)
+    .filter(Boolean);
+  const numCorrect = correctIndices.length;
+
+  // Build the correct answer label
+  function labelFor(indices) {
+    if (indices.length === 0) return 'None of the above';
+    if (indices.length === n) return 'All of the above';
+    if (indices.length === 1) return `${numLabel(indices[0])} only`;
+    if (indices.length === 2) return `${numLabel(indices[0])} and ${numLabel(indices[1])} only`;
+    return indices.slice(0,-1).map(numLabel).join(', ') + ' and ' + numLabel(indices[indices.length-1]) + ' only';
+  }
+
+  function numLabel(n) {
+    return ['1','2','3','4','5'][n-1] || String(n);
+  }
+
+  const correctLabel = labelFor(correctIndices);
+
+  // Generate 3 plausible wrong options
+  const wrongOptions = new Set();
+
+  // Always try: None, All, and some partial combos
+  const candidates = [];
+
+  if (numCorrect !== 0) candidates.push('None of the above');
+  if (numCorrect !== n) candidates.push('All of the above');
+
+  // Generate partial combos different from the correct answer
+  const allIndices = Array.from({length: n}, (_,i) => i+1);
+
+  // 1-correct combos
+  allIndices.forEach(i => {
+    const lbl = labelFor([i]);
+    if (lbl !== correctLabel) candidates.push(lbl);
+  });
+
+  // 2-correct combos
+  for (let i = 0; i < allIndices.length; i++) {
+    for (let j = i+1; j < allIndices.length; j++) {
+      const lbl = labelFor([allIndices[i], allIndices[j]]);
+      if (lbl !== correctLabel) candidates.push(lbl);
+    }
+  }
+
+  // 3-correct combos
+  for (let i = 0; i < allIndices.length; i++) {
+    for (let j = i+1; j < allIndices.length; j++) {
+      for (let k = j+1; k < allIndices.length; k++) {
+        const lbl = labelFor([allIndices[i], allIndices[j], allIndices[k]]);
+        if (lbl !== correctLabel) candidates.push(lbl);
+      }
+    }
+  }
+
+  // Deduplicate candidates, shuffle, pick 3
+  const unique = [...new Set(candidates)];
+  const shuffled = shuffle(unique).slice(0, 3);
+
+  // Build final 4 options: 3 wrong + 1 correct, then shuffle
+  const allOpts = shuffle([...shuffled, correctLabel]);
+
+  return {
+    options: allOpts,
+    correctLabel
+  };
+}
+
+// ── DRAW ──────────────────────────────────────────────────────────────────
+function drawQuestion() {
+  if (S.questions.length === 0) { alert('No questions yet — add some first!'); return; }
+
+  const unseen = S.questions.filter(q => !session.seen.has(q.id));
+  const pool   = unseen.length > 0 ? unseen : S.questions;
+  currentQ     = pool[Math.floor(Math.random() * pool.length)];
+  session.seen.add(currentQ.id);
+  answered     = false;
+
+  // Randomly pick 3–5 statements from the bank
+  const stmts    = currentQ.statements;
+  const pickCount = Math.min(stmts.length, Math.floor(Math.random() * 3) + 3); // 3,4,5
+  currentShownStmts = shuffle(stmts).slice(0, pickCount);
+
+  renderQuestion();
+  renderStats();
+}
+
+// ── RENDER QUESTION ───────────────────────────────────────────────────────
+function renderQuestion() {
+  const zone  = document.getElementById('question-zone');
+  const seen  = session.seen.size;
+  const total = S.questions.length;
+  const pct   = total > 0 ? (seen/total*100).toFixed(0) : 0;
+  const dc    = DIFF_COLORS[currentQ.difficulty] || '#8A7F74';
+
+  const { options, correctLabel } = generateOptions(currentShownStmts);
+
+  // Store on currentQ for use in selectAnswer
+  currentQ._correctLabel = correctLabel;
+  currentQ._options      = options;
+
+  const stmtsHtml = currentShownStmts.map((s,i) => `
+    <div class="stmt" id="stmt-${i}">
+      <div class="stmt-num">${i+1}</div>
+      <div class="stmt-text">
+        <div>${s.text}</div>
+      </div>
+    </div>`).join('');
+
+  const optsHtml = options.map((opt, i) => {
+    const letter = ['A','B','C','D'][i];
+    return `
+      <button class="opt" id="opt-${i}" onclick="selectAnswer(${i})">
+        <span class="opt-bubble">${letter}</span>
+        <span style="flex:1">${opt}</span>
+      </button>`;
+  }).join('');
+
+  zone.innerHTML = `
+    <div class="prog-row"><span>Session</span><span>${seen} / ${total} seen</span></div>
+    <div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div>
+
+    <div class="q-card">
+      <div class="q-card-header">
+        <div class="q-meta">
+          <span class="q-badge" style="background:${dc}20;color:${dc}">${currentQ.difficulty}</span>
+          <span class="q-badge" style="background:#EDE7DA;color:#8A7F74">${currentQ.topic}</span>
+          <span class="q-num">${currentShownStmts.length} statements shown</span>
+        </div>
+        <div class="q-stem">${currentQ.stem}</div>
+        <div class="q-instruction">📋 How many of the following statements are correct?</div>
+      </div>
+
+      <div class="statements-box">
+        <div class="stmt-list" id="stmt-list">${stmtsHtml}</div>
+      </div>
+
+      <div class="options-section">
+        <div class="opts-label">Choose the correct option</div>
+        <div class="opts-grid" id="opts-grid">${optsHtml}</div>
+      </div>
+
+      <div class="result-box" id="result-box"></div>
+      <button class="next-btn" id="next-btn" onclick="drawQuestion()">Next Question →</button>
+    </div>`;
+}
+
+// ── SELECT ANSWER ─────────────────────────────────────────────────────────
+function selectAnswer(chosenIdx) {
+  if (answered) return;
+  answered = true;
+
+  const chosenLabel  = currentQ._options[chosenIdx];
+  const correctLabel = currentQ._correctLabel;
+  const isCorrect    = chosenLabel === correctLabel;
+
+  if (isCorrect) session.correct++; else session.wrong++;
+  renderStats();
+
+  // Disable all options
+  document.querySelectorAll('.opt').forEach(b => { b.classList.add('disabled'); b.onclick = null; });
+
+  // Style chosen and correct
+  const chosenBtn = document.getElementById('opt-'+chosenIdx);
+  chosenBtn.classList.add(isCorrect ? 'chosen-correct' : 'chosen-wrong');
+  chosenBtn.innerHTML += `<span class="opt-icon">${isCorrect ? '✅' : '❌'}</span>`;
+
+  if (!isCorrect) {
+    const correctIdx = currentQ._options.indexOf(correctLabel);
+    const correctBtn = document.getElementById('opt-'+correctIdx);
+    if (correctBtn) {
+      correctBtn.classList.add('reveal-correct');
+      correctBtn.innerHTML += '<span class="opt-icon">✅</span>';
+    }
+  }
+
+  // Reveal each statement's true/false
+  currentShownStmts.forEach((s, i) => {
+    const el = document.getElementById('stmt-'+i);
+    if (!el) return;
+    el.classList.add(s.correct ? 'revealed-correct' : 'revealed-wrong');
+    const textDiv = el.querySelector('.stmt-text');
+    const verdict = document.createElement('div');
+    verdict.className = 'stmt-verdict';
+    verdict.textContent = s.correct ? '✅ Correct' : '❌ Incorrect';
+    textDiv.appendChild(verdict);
+  });
+
+  // Result box
+  const rb = document.getElementById('result-box');
+  rb.className = 'result-box ' + (isCorrect ? 'correct' : 'wrong');
+  rb.style.display = 'block';
+
+  const numC = currentShownStmts.filter(s=>s.correct).length;
+  const expText = currentQ.explanation ? '<br><br>' + currentQ.explanation : '';
+  const expImg  = currentQ.explanationImage
+    ? `<div class="exp-img-display"><img data-src="${currentQ.explanationImage}" src="" alt="Explanation image" onclick="openLightbox(this.src)" title="Click to enlarge" style="display:none"></div>`
+    : '';
+
+  if (isCorrect) {
+    rb.innerHTML = `<strong>✅ Correct!</strong> ${numC === 0 ? 'None' : numC} of the ${currentShownStmts.length} shown statements ${numC === 1 ? 'is' : 'are'} correct.${expText}${expImg}`;
+  } else {
+    rb.innerHTML = `<strong>❌ Wrong.</strong> The correct answer is: <strong>${correctLabel}</strong> (${numC} of ${currentShownStmts.length} statements correct).${expText}${expImg}`;
+  }
+
+  // Lazy-load explanation image now that answer is revealed
+  const lazyImg = rb.querySelector('img[data-src]');
+  if (lazyImg) {
+    lazyImg.style.display = 'block';
+    lazyImg.src = lazyImg.getAttribute('data-src');
+  }
+
+  document.getElementById('next-btn').style.display = 'block';
+}
+
+// ── STATEMENT BUILDER ─────────────────────────────────────────────────────
+let stmtRows = [];
+
+function addStmtRow() {
+  stmtRows.push({ text: '', correct: true });
+  renderStmtBuilder();
+}
+
+function removeStmtRow(i) {
+  stmtRows.splice(i, 1);
+  renderStmtBuilder();
+}
+
+function toggleTF(i, val) {
+  stmtRows[i].correct = val;
+  renderStmtBuilder();
+}
+
+function renderStmtBuilder() {
+  const builder = document.getElementById('stmt-builder');
+  builder.innerHTML = stmtRows.map((row, i) => `
+    <div class="stmt-build-row">
+      <div class="stmt-build-num">${i+1}</div>
+      <input class="stmt-build-input" type="text"
+        value="${row.text.replace(/"/g,'&quot;')}"
+        placeholder="Statement ${i+1}..."
+        oninput="stmtRows[${i}].text = this.value" />
+      <div class="tf-toggle">
+        <button class="tf-btn ${row.correct ? 'true-active' : ''}"
+          onclick="toggleTF(${i}, true)">✓ True</button>
+        <button class="tf-btn ${!row.correct ? 'false-active' : ''}"
+          onclick="toggleTF(${i}, false)">✗ False</button>
+      </div>
+      <button class="del-stmt-btn" onclick="removeStmtRow(${i})">✕</button>
+    </div>`).join('');
+}
+
+// Init with 3 blank rows
+stmtRows = [{text:'',correct:true},{text:'',correct:true},{text:'',correct:false}];
+renderStmtBuilder();
+
+// ── ADD QUESTION ──────────────────────────────────────────────────────────
+function addQuestion() {
+  const stem = document.getElementById('n-stem').value.trim();
+  const exp  = document.getElementById('n-exp').value.trim();
+  const topic = document.getElementById('n-topic').value;
+  const diff  = document.getElementById('n-diff').value;
+
+  if (!stem) { alert('Please enter a question stem.'); return; }
+
+  const statements = stmtRows
+    .map(r => ({ text: r.text.trim(), correct: r.correct }))
+    .filter(r => r.text);
+
+  if (statements.length < 3) { alert('Please add at least 3 statements.'); return; }
+
+  S.questions.push({
+    id: Date.now() + Math.random(),
+    topic, difficulty: diff,
+    stem, statements, explanation: exp,
+    explanationImage: currentExpImageB64 || null
+  });
+  save();
+
+  // Reset form
+  document.getElementById('n-stem').value = '';
+  document.getElementById('n-exp').value = '';
+  removeExpImg();
+  stmtRows = [{text:'',correct:true},{text:'',correct:true},{text:'',correct:false}];
+  renderStmtBuilder();
+
+  const fb = document.getElementById('add-fb');
+  fb.textContent = `✅ Question added with ${statements.length} statements!`;
+  fb.style.display = 'block';
+  setTimeout(() => fb.style.display='none', 2500);
+}
+
+// ── SAMPLES ───────────────────────────────────────────────────────────────
+const SAMPLES = [
+  {
+    topic: 'Polity', difficulty: 'Medium',
+    stem: 'Consider the following statements about Fundamental Rights in the Indian Constitution:',
+    explanation: 'Article 14 is right to equality, Article 19 covers six freedoms, Article 21 is right to life. Article 31C was added by 42nd Amendment to protect laws implementing Directive Principles.',
+    statements: [
+      { text: 'Article 14 guarantees equality before law to citizens only, not foreigners.', correct: false },
+      { text: 'Article 19 guarantees six freedoms including freedom of speech and expression.', correct: true },
+      { text: 'Article 21 has been interpreted by the Supreme Court to include the right to education and livelihood.', correct: true },
+      { text: 'Fundamental Rights can be suspended during a national emergency under Article 352.', correct: true },
+      { text: 'The right to property is still a Fundamental Right under Article 31.', correct: false },
+      { text: 'Article 32 is itself a Fundamental Right giving citizens the right to move the Supreme Court.', correct: true },
+    ]
+  },
+  {
+    topic: 'History', difficulty: 'Medium',
+    stem: 'Consider the following statements about the Indian National Movement:',
+    explanation: 'The Non-Cooperation Movement was called off in 1922 after Chauri Chaura. The Dandi March began on 12 March 1930. The INA was formed under Subhas Chandra Bose in 1943.',
+    statements: [
+      { text: 'The Non-Cooperation Movement was withdrawn by Gandhi following the Chauri Chaura incident in 1922.', correct: true },
+      { text: 'The Dandi March began on 12 March 1930 and covered a distance of about 241 miles.', correct: true },
+      { text: 'The Indian National Army (INA) was formed by Subhas Chandra Bose in 1941.', correct: false },
+      { text: 'The Quit India Movement was launched on 8 August 1942.', correct: true },
+      { text: 'Simon Commission was boycotted because it had no Indian members.', correct: true },
+      { text: 'Bal Gangadhar Tilak founded the Indian National Congress.', correct: false },
+    ]
+  },
+  {
+    topic: 'Geography', difficulty: 'Easy',
+    stem: 'Consider the following statements about Indian rivers:',
+    explanation: 'Godavari is called "Vridha Ganga". Krishna and Cauvery are peninsular rivers. Brahmaputra originates in Tibet. Indus originates near Mansarovar Lake.',
+    statements: [
+      { text: 'The Godavari is known as "Vridha Ganga" or the Ganges of the Deccan.', correct: true },
+      { text: 'The Krishna river originates in the Western Ghats near Mahabaleshwar.', correct: true },
+      { text: 'The Brahmaputra originates from the Gangotri glacier.', correct: false },
+      { text: 'The Indus river originates near the Mansarovar Lake in Tibet.', correct: true },
+      { text: 'The Cauvery river flows entirely within the state of Karnataka.', correct: false },
+    ]
+  },
+  {
+    topic: 'Economy', difficulty: 'Hard',
+    stem: 'Consider the following statements about India\'s monetary policy:',
+    explanation: 'The MPC was constituted under RBI Act 1934. CRR is the minimum fraction of deposits banks must hold with RBI in cash. SLR includes cash, gold and approved securities.',
+    statements: [
+      { text: 'The Monetary Policy Committee (MPC) was constituted under the RBI Act, 1934.', correct: true },
+      { text: 'Cash Reserve Ratio (CRR) is the percentage of deposits banks must keep with RBI as liquid assets.', correct: false },
+      { text: 'Statutory Liquidity Ratio (SLR) refers to the minimum percentage of deposits maintained by banks in cash, gold, or government securities.', correct: true },
+      { text: 'An increase in Repo Rate makes borrowing cheaper for commercial banks.', correct: false },
+      { text: 'The RBI uses Open Market Operations to control liquidity in the economy.', correct: true },
+    ]
+  },
+];
+
+function loadSamples() {
+  SAMPLES.forEach(s => S.questions.push({ id: Date.now()+Math.random(), ...s }));
+  save();
+  const fb = document.getElementById('add-fb');
+  fb.textContent = `📥 ${SAMPLES.length} sample questions loaded!`;
+  fb.style.display = 'block';
+  setTimeout(() => fb.style.display='none', 2500);
+}
+
+// ── MANAGE ────────────────────────────────────────────────────────────────
+function renderManage() {
+  renderStorageBar();
+  document.getElementById('manage-count').textContent = S.questions.length;
+  const list = document.getElementById('manage-list');
+  if (S.questions.length === 0) {
+    list.innerHTML = '<div class="empty"><div class="ei">📭</div><h3>No questions yet</h3></div>';
+    return;
+  }
+  list.innerHTML = S.questions.map((q,i) => {
+    const tc = q.statements.filter(s=>s.correct).length;
+    const tw = q.statements.filter(s=>!s.correct).length;
+    return `
+    <div class="q-item">
+      <div class="q-item-top">
+        <div style="flex:1">
+          <div class="q-tags">
+            <span class="q-tag" style="background:${DIFF_COLORS[q.difficulty]}20;color:${DIFF_COLORS[q.difficulty]}">${q.difficulty}</span>
+            <span class="q-tag" style="background:#EDE7DA;color:#8A7F74">${q.topic}</span>
+            <span class="q-tag" style="background:#F0FDF4;color:#16A34A">${tc} true</span>
+            <span class="q-tag" style="background:#FEF2F2;color:#DC2626">${tw} false</span>
+          </div>
+          <div class="q-question-text">${q.stem}</div>
+          <div class="q-stmts-preview">
+            ${q.statements.slice(0,3).map((s,si)=>`<span style="color:${s.correct?'#16A34A':'#DC2626'}">${si+1}. ${s.text.substring(0,60)}${s.text.length>60?'…':''}</span>`).join('<br>')}
+            ${q.statements.length > 3 ? `<br><span style="color:var(--muted)">+ ${q.statements.length-3} more statements</span>` : ''}
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+          <button class="edit-q" onclick="editQ(${i})">✏️ Edit</button>
+          <button class="del-q" onclick="deleteQ(${i})">🗑 Delete</button>
+        </div>
+      </div>
+    </div>`}).join('');
+}
+
+function deleteQ(i) {
+  if (!confirm('Delete this question?')) return;
+  S.questions.splice(i,1); save(); renderManage();
+}
+
+// ── EDIT ──────────────────────────────────────────────────────────────────
+let editingIndex = null;  // null = adding new, number = editing existing
+
+function editQ(i) {
+  const q = S.questions[i];
+  editingIndex = i;
+
+  // Switch to add tab
+  switchTab('add');
+
+  // Populate fields
+  document.getElementById('n-stem').value  = q.stem;
+  document.getElementById('n-exp').value   = q.explanation || '';
+  document.getElementById('n-topic').value = q.topic;
+  document.getElementById('n-diff').value  = q.difficulty;
+
+  // Load image if exists
+  loadExpImgIntoForm(q.explanationImage || null);
+
+  // Load statements into builder
+  stmtRows = q.statements.map(s => ({ text: s.text, correct: s.correct }));
+  renderStmtBuilder();
+
+  // Show edit banner, update button label
+  document.getElementById('edit-banner').style.display = 'flex';
+  document.getElementById('add-tab-title').textContent = 'Edit Question';
+  document.getElementById('submit-btn').textContent    = '💾 Save Changes';
+
+  // Scroll to top
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function cancelEdit() {
+  editingIndex = null;
+  document.getElementById('edit-banner').style.display = 'none';
+  document.getElementById('add-tab-title').textContent = 'New Statement-Based Question';
+  document.getElementById('submit-btn').innerHTML      = '➕ Add Question';
+  document.getElementById('n-stem').value  = '';
+  document.getElementById('n-exp').value   = '';
+  removeExpImg();
+  stmtRows = [{text:'',correct:true},{text:'',correct:true},{text:'',correct:false}];
+  renderStmtBuilder();
+}
+
+function submitQuestion() {
+  if (editingIndex !== null) {
+    saveEdit();
+  } else {
+    addQuestion();
+  }
+}
+
+function saveEdit() {
+  const stem = document.getElementById('n-stem').value.trim();
+  const exp  = document.getElementById('n-exp').value.trim();
+  const topic = document.getElementById('n-topic').value;
+  const diff  = document.getElementById('n-diff').value;
+
+  if (!stem) { alert('Please enter a question stem.'); return; }
+  const statements = stmtRows
+    .map(r => ({ text: r.text.trim(), correct: r.correct }))
+    .filter(r => r.text);
+  if (statements.length < 3) { alert('Please add at least 3 statements.'); return; }
+
+  // Update in place, keep same id
+  S.questions[editingIndex] = {
+    ...S.questions[editingIndex],
+    topic, difficulty: diff,
+    stem, statements, explanation: exp,
+    explanationImage: currentExpImageB64 !== undefined ? currentExpImageB64 : (S.questions[editingIndex].explanationImage || null)
+  };
+  save();
+
+  const fb = document.getElementById('add-fb');
+  fb.textContent = `✅ Question updated with ${statements.length} statements!`;
+  fb.style.display = 'block';
+  setTimeout(() => fb.style.display='none', 2500);
+
+  cancelEdit();   // reset form back to "Add" mode
+}
+
+// ── TAB SWITCH ────────────────────────────────────────────────────────────
+function switchTab(t) {
+  ['study','add','manage'].forEach(id => {
+    document.getElementById('tab-'+id).style.display = id===t ? 'block' : 'none';
+  });
+  document.querySelectorAll('.nav-tab').forEach((btn,i) => {
+    btn.classList.toggle('active', ['study','add','manage'][i]===t);
+  });
+  if (t==='add')    { renderStmtBuilder(); }
+  if (t==='manage') { renderManage(); }
+}
+
+
+// ── EXPORT / IMPORT ───────────────────────────────────────────────────────
+function exportQuestions() {
+  if (S.questions.length === 0) { alert('No questions to export!'); return; }
+
+  const exportData = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    totalQuestions: S.questions.length,
+    questions: S.questions
+  };
+
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const date = new Date().toISOString().slice(0,10);
+  a.href     = url;
+  a.download = `UPSC_Questions_${date}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importQuestions(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+
+      // Validate structure
+      if (!data.questions || !Array.isArray(data.questions)) {
+        alert('Invalid file format. Please use a file exported from this app.');
+        return;
+      }
+
+      const incoming = data.questions.length;
+      const existing = S.questions.length;
+
+      let choice;
+      if (existing === 0) {
+        choice = 'replace';
+      } else {
+        const msg = `Found ${incoming} question(s) in the file.\n\nYou currently have ${existing} question(s).\n\nClick OK to ADD imported questions to existing ones.\nClick Cancel to REPLACE all existing questions with imported ones.`;
+        const ok = confirm(msg);
+        choice = ok ? 'add' : 'replace';
+        if (choice === 'replace' && !confirm('Are you sure you want to REPLACE all existing questions? This cannot be undone.')) return;
+      }
+
+      if (choice === 'replace') {
+        S.questions = data.questions;
+      } else {
+        // Add but avoid duplicates by id
+        const existingIds = new Set(S.questions.map(q => q.id));
+        const newOnes = data.questions.filter(q => !existingIds.has(q.id));
+        S.questions = [...S.questions, ...newOnes];
+      }
+
+      save();
+      renderManage();
+      alert(`✅ Done! ${choice === 'replace' ? 'Replaced with' : 'Added'} ${incoming} question(s). Total now: ${S.questions.length}`);
+    } catch(err) {
+      alert('Could not read file. Make sure it is a valid JSON export from this app.');
+    }
+  };
+  reader.readAsText(file);
+
+  // Reset input so same file can be re-imported
+  event.target.value = '';
+}
+
+function clearAll() {
+  if (S.questions.length === 0) { alert('No questions to clear.'); return; }
+  if (!confirm(`Delete ALL ${S.questions.length} questions? This cannot be undone.\n\nTip: Export first to keep a backup!`)) return;
+  S.questions = [];
+  save();
+  renderManage();
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+renderStats();
+renderStorageBar();
+</script>
+</body>
+</html>
