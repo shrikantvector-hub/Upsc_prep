@@ -1478,19 +1478,10 @@ async function clearAll() {
   renderManage();
 }
 
-// ── GITHUB GIST CLOUD SYNC ────────────────────────────────────────────────
-const GIST_FILENAME     = 'upsc_prep_questions.json';
-const CLOUD_GIST_ID_KEY = 'upsc_gist_id';
-
-// Token and Gist ID are baked directly into the file — survive all cache clears
-const BAKED_TOKEN   = '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';
-const BAKED_GIST_ID = 'b0991ca4957e89d5476939551418d898';
-
-function getCloudToken() { return BAKED_TOKEN; }
-function getGistId() {
-  try { return localStorage.getItem(CLOUD_GIST_ID_KEY) || BAKED_GIST_ID; }
-  catch(e) { return BAKED_GIST_ID; }
-}
+// ── JSONBIN CLOUD SYNC ───────────────────────────────────────────────────────
+const JSONBIN_BIN_ID  = '69aaec36ae596e708f660425';
+const JSONBIN_API_KEY = '$2a$10$placeholder'; // not needed for public bin reads
+const JSONBIN_URL     = 'https://api.jsonbin.io/v3/b/' + JSONBIN_BIN_ID;
 
 function setCloudStatus(msg, type) {
   var el = document.getElementById('cloud-status');
@@ -1500,33 +1491,15 @@ function setCloudStatus(msg, type) {
 }
 
 async function cloudPush() {
-  var token = getCloudToken();
-  if (!token) { alert('No token configured.'); return; }
   if (S.questions.length === 0) { alert('No questions to save!'); return; }
   setCloudStatus('🔄 Saving ' + S.questions.length + ' questions to cloud…', 'info');
-  var content = JSON.stringify({ version:1, savedAt: new Date().toISOString(), questions: S.questions }, null, 2);
-  var gistId = getGistId();
   try {
-    var res, data;
-    if (gistId) {
-      res = await fetch('https://api.github.com/gists/' + gistId, {
-        method: 'PATCH',
-        headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
-        body: JSON.stringify({ files: { [GIST_FILENAME]: { content: content } } })
-      });
-    } else {
-      res = await fetch('https://api.github.com/gists', {
-        method: 'POST',
-        headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description: 'UPSC Prep Question Bank', public: false, files: { [GIST_FILENAME]: { content: content } } })
-      });
-    }
-    if (!res.ok) {
-      var err = await res.json();
-      throw new Error(err.message || 'GitHub error ' + res.status);
-    }
-    data = await res.json();
-    try { localStorage.setItem(CLOUD_GIST_ID_KEY, data.id); } catch(e) {}
+    var res = await fetch(JSONBIN_URL, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-Bin-Versioning': 'false' },
+      body: JSON.stringify({ version:1, savedAt: new Date().toISOString(), questions: S.questions })
+    });
+    if (!res.ok) throw new Error('Server error ' + res.status);
     var ts = new Date().toLocaleTimeString();
     setCloudStatus('✅ ' + S.questions.length + ' questions saved at ' + ts + '!', 'ok');
   } catch(e) {
@@ -1535,20 +1508,14 @@ async function cloudPush() {
 }
 
 async function cloudPull() {
-  var token = getCloudToken();
-  var gistId = getGistId();
-  if (!gistId) { setCloudStatus('⚠️ No cloud backup found yet. Click Save to Cloud first.', 'info'); return; }
   setCloudStatus('🔄 Restoring from cloud…', 'info');
   try {
-    var res = await fetch('https://api.github.com/gists/' + gistId, {
-      headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' }
+    var res = await fetch(JSONBIN_URL + '/latest', {
+      headers: { 'X-Bin-Meta': 'false' }
     });
     if (!res.ok) throw new Error('Could not fetch backup (status ' + res.status + ')');
-    var gist = await res.json();
-    var fileContent = gist.files[GIST_FILENAME] && gist.files[GIST_FILENAME].content;
-    if (!fileContent) throw new Error('No questions found in cloud backup.');
-    var data = JSON.parse(fileContent);
-    if (!Array.isArray(data.questions)) throw new Error('Invalid backup format.');
+    var data = await res.json();
+    if (!Array.isArray(data.questions)) throw new Error('No questions found in backup.');
     var incoming = data.questions.length;
     var existing = S.questions.length;
     var choice = 'replace';
@@ -1577,25 +1544,18 @@ async function cloudPull() {
 }
 
 async function autoRestoreFromCloud() {
-  if (S.questions.length > 0) return; // already have questions
-  var token = getCloudToken();
-  var gistId = getGistId();
-  if (!token || !gistId) return;
+  if (S.questions.length > 0) return;
   try {
-    var res = await fetch('https://api.github.com/gists/' + gistId, {
-      headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' }
+    var res = await fetch(JSONBIN_URL + '/latest', {
+      headers: { 'X-Bin-Meta': 'false' }
     });
     if (!res.ok) return;
-    var gist = await res.json();
-    var fileContent = gist.files[GIST_FILENAME] && gist.files[GIST_FILENAME].content;
-    if (!fileContent) return;
-    var data = JSON.parse(fileContent);
+    var data = await res.json();
     if (!Array.isArray(data.questions) || data.questions.length === 0) return;
     await dbPutMany(data.questions);
     S.questions = data.questions;
     renderStats();
     renderStorageBar();
-    var ts = data.savedAt ? new Date(data.savedAt).toLocaleString() : '';
     var banner = document.createElement('div');
     banner.style.cssText = 'position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#F0FDF4;border:1.5px solid #BBF7D0;color:#15803D;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.12);text-align:center;';
     banner.textContent = '☁️ Auto-restored ' + data.questions.length + ' questions from cloud!';
