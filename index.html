@@ -606,7 +606,7 @@ function triggerInstall() {
 
       <!-- Connected state -->
       <div class="cloud-connected-info" id="cloud-connected-info">
-        ✅ Connected to GitHub Gist · Questions auto-restore after cache clear
+        ✅ Connected to GitHub Gist · <span id="bake-status"></span>
       </div>
 
       <!-- Token input (shown when not connected) -->
@@ -1401,7 +1401,7 @@ function switchTab(t) {
     btn.classList.toggle('active', ['study','add','manage'][i]===t);
   });
   if (t==='add')    { renderStmtBuilder(); }
-  if (t==='manage') { renderManage(); updateCloudUI(); }
+  if (t==='manage') { renderManage(); updateCloudUI(); var _gid=getGistId(); var _tok=getCloudToken(); if(_tok && _gid && !BAKED_TOKEN) showBakeInstructions(_tok,_gid); }
 }
 
 
@@ -1510,11 +1510,27 @@ async function clearAll() {
 
 // ── GITHUB GIST CLOUD SYNC ────────────────────────────────────────────────
 const GIST_FILENAME = 'upsc_prep_questions.json';
-const CLOUD_TOKEN_KEY = 'upsc_gist_token';
+const CLOUD_TOKEN_KEY   = 'upsc_gist_token';
 const CLOUD_GIST_ID_KEY = 'upsc_gist_id';
 
-function getCloudToken()  { try { return localStorage.getItem(CLOUD_TOKEN_KEY) || ''; } catch(e) { return ''; } }
-function getGistId()      { try { return localStorage.getItem(CLOUD_GIST_ID_KEY) || ''; } catch(e) { return ''; } }
+// ═══════════════════════════════════════════════════════════════════
+// PERMANENT BACKUP — Fill these in ONCE after your first cloud save.
+// These are baked into the file, so they survive ALL cache clears.
+// Step 1: Connect token in Manage tab → Save to Cloud
+// Step 2: Copy token + Gist ID shown below and paste them here
+// Step 3: Re-upload this file to GitHub — done forever!
+// ═══════════════════════════════════════════════════════════════════
+const BAKED_TOKEN   = '';   // ← paste your GitHub token here
+const BAKED_GIST_ID = '';   // ← paste your Gist ID here
+
+function getCloudToken() {
+  try { return localStorage.getItem(CLOUD_TOKEN_KEY) || BAKED_TOKEN || ''; }
+  catch(e) { return BAKED_TOKEN || ''; }
+}
+function getGistId() {
+  try { return localStorage.getItem(CLOUD_GIST_ID_KEY) || BAKED_GIST_ID || ''; }
+  catch(e) { return BAKED_GIST_ID || ''; }
+}
 
 function setCloudStatus(msg, type) {
   const el = document.getElementById('cloud-status');
@@ -1537,6 +1553,17 @@ function updateCloudUI() {
     if (tokenSection) tokenSection.style.display = 'none';
     if (actions) actions.style.display = 'flex';
     if (connectedInfo) connectedInfo.style.display = 'block';
+    // Show bake status
+    var bakeEl = document.getElementById('bake-status');
+    if (bakeEl) {
+      if (BAKED_TOKEN && BAKED_GIST_ID) {
+        bakeEl.textContent = '🔒 Permanently baked in — survives all cache clears!';
+        bakeEl.style.color = '#15803D';
+      } else {
+        bakeEl.innerHTML = '⚠️ <strong>Not permanent yet</strong> — click Save to Cloud, then follow instructions to bake in.';
+        bakeEl.style.color = '#92400E';
+      }
+    }
   } else {
     if (tokenSection) tokenSection.style.display = 'block';
     if (actions) actions.style.display = 'none';
@@ -1604,7 +1631,8 @@ async function cloudPush() {
     data = await res.json();
     localStorage.setItem(CLOUD_GIST_ID_KEY, data.id);
     const ts = new Date().toLocaleTimeString();
-    setCloudStatus('✅ ' + S.questions.length + ' questions saved to cloud at ' + ts + '. Safe even after cache clear!', 'ok');
+    showBakeInstructions(token, data.id);
+    setCloudStatus('✅ ' + S.questions.length + ' questions saved to cloud at ' + ts + '!', 'ok');
   } catch(e) {
     setCloudStatus('❌ Save failed: ' + e.message, 'err');
   }
@@ -1653,7 +1681,52 @@ async function cloudPull() {
   }
 }
 
-// Auto-restore from cloud on startup if IndexedDB is empty and gist exists
+// ── SHOW BAKE INSTRUCTIONS ────────────────────────────────────────────────
+function showBakeInstructions(token, gistId) {
+  if (BAKED_TOKEN && BAKED_GIST_ID) return; // already permanent
+  var existing = document.getElementById('bake-instructions');
+  if (existing) existing.remove();
+
+  var box = document.createElement('div');
+  box.id = 'bake-instructions';
+  box.style.cssText = 'position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#1E3A5F;color:#fff;padding:20px 24px;border-radius:14px;font-size:13px;z-index:99999;box-shadow:0 8px 32px rgba(0,0,0,.4);max-width:92vw;width:440px;line-height:1.7;';
+
+  var line1 = "const BAKED_TOKEN = '" + token + "';";
+  var line2 = "const BAKED_GIST_ID = '" + gistId + "';";
+  var codeText = line1 + "\n" + line2;
+
+  box.innerHTML =
+    '<div style="font-weight:700;font-size:15px;margin-bottom:12px;">🔐 One-time setup — make restore permanent</div>' +
+    '<div style="margin-bottom:10px;">Open <b>index.html</b> in any text editor. Find these 2 lines and replace them with the lines below:</div>' +
+    '<div style="background:rgba(0,0,0,.35);border-radius:8px;padding:10px 12px;font-family:monospace;font-size:11px;margin-bottom:8px;word-break:break-all;">' +
+      'const BAKED_TOKEN = \'\';<br>const BAKED_GIST_ID = \'\';' +
+    '</div>' +
+    '<div style="margin-bottom:6px;">↓ Replace with:</div>' +
+    '<div style="background:#0F3460;border:1px solid #3B82F6;border-radius:8px;padding:10px 12px;font-family:monospace;font-size:11px;margin-bottom:14px;word-break:break-all;">' +
+      line1.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '<br>' +
+      line2.replace(/</g,'&lt;').replace(/>/g,'&gt;') +
+    '</div>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
+      '<button id="bake-copy-btn" style="padding:8px 16px;background:#16A34A;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">📋 Copy 2 lines</button>' +
+      '<button id="bake-close-btn" style="padding:8px 16px;background:rgba(255,255,255,.15);color:white;border:none;border-radius:8px;font-size:13px;cursor:pointer;">Close</button>' +
+    '</div>' +
+    '<div style="margin-top:10px;font-size:11px;opacity:.7;">After pasting, save &amp; re-upload to GitHub. Questions will restore forever after any cache clear.</div>';
+
+  document.body.appendChild(box);
+
+  document.getElementById('bake-copy-btn').addEventListener('click', function() {
+    navigator.clipboard.writeText(codeText).then(function() {
+      alert('Copied! Paste into index.html replacing the two BAKED_ lines, then re-upload to GitHub.');
+    }).catch(function() {
+      prompt('Copy manually:', codeText);
+    });
+  });
+  document.getElementById('bake-close-btn').addEventListener('click', function() {
+    box.remove();
+  });
+}
+
+// Auto-restore from cloud on startup if IndexedDB is empty and gist exists// Auto-restore from cloud on startup if IndexedDB is empty and gist exists
 async function autoRestoreFromCloud() {
   const token = getCloudToken();
   const gistId = getGistId();
