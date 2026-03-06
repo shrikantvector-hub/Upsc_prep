@@ -1478,10 +1478,11 @@ async function clearAll() {
   renderManage();
 }
 
-// ── JSONBIN CLOUD SYNC ───────────────────────────────────────────────────────
-const JSONBIN_BIN_ID  = '69aaec36ae596e708f660425';
-const JSONBIN_API_KEY = '$2a$10$placeholder'; // not needed for public bin reads
-const JSONBIN_URL     = 'https://api.jsonbin.io/v3/b/' + JSONBIN_BIN_ID;
+// ── PUBLIC GIST CLOUD SYNC (no token needed) ─────────────────────────────────
+const GIST_ID       = '99a91225124232d6aa5fc7b2d8de494b';
+const GIST_FILENAME = 'upsc_questions.json';
+const GIST_RAW_URL  = 'https://gist.githubusercontent.com/raw/' + GIST_ID + '/' + GIST_FILENAME;
+const GIST_API_URL  = 'https://api.github.com/gists/' + GIST_ID;
 
 function setCloudStatus(msg, type) {
   var el = document.getElementById('cloud-status');
@@ -1494,12 +1495,16 @@ async function cloudPush() {
   if (S.questions.length === 0) { alert('No questions to save!'); return; }
   setCloudStatus('🔄 Saving ' + S.questions.length + ' questions to cloud…', 'info');
   try {
-    var res = await fetch(JSONBIN_URL, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'X-Bin-Versioning': 'false' },
-      body: JSON.stringify({ version:1, savedAt: new Date().toISOString(), questions: S.questions })
+    var payload = JSON.stringify({ version:1, savedAt: new Date().toISOString(), questions: S.questions });
+    var res = await fetch(GIST_API_URL, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/vnd.github.v3+json' },
+      body: JSON.stringify({ files: { [GIST_FILENAME]: { content: payload } } })
     });
-    if (!res.ok) throw new Error('Server error ' + res.status);
+    if (!res.ok) {
+      var err = await res.json();
+      throw new Error(err.message || 'Error ' + res.status);
+    }
     var ts = new Date().toLocaleTimeString();
     setCloudStatus('✅ ' + S.questions.length + ' questions saved at ' + ts + '!', 'ok');
   } catch(e) {
@@ -1510,9 +1515,8 @@ async function cloudPush() {
 async function cloudPull() {
   setCloudStatus('🔄 Restoring from cloud…', 'info');
   try {
-    var res = await fetch(JSONBIN_URL + '/latest', {
-      headers: { 'X-Bin-Meta': 'false' }
-    });
+    // Use raw URL with cache buster to always get latest
+    var res = await fetch(GIST_RAW_URL + '?t=' + Date.now());
     if (!res.ok) throw new Error('Could not fetch backup (status ' + res.status + ')');
     var data = await res.json();
     if (!Array.isArray(data.questions)) throw new Error('No questions found in backup.');
@@ -1546,9 +1550,7 @@ async function cloudPull() {
 async function autoRestoreFromCloud() {
   if (S.questions.length > 0) return;
   try {
-    var res = await fetch(JSONBIN_URL + '/latest', {
-      headers: { 'X-Bin-Meta': 'false' }
-    });
+    var res = await fetch(GIST_RAW_URL + '?t=' + Date.now());
     if (!res.ok) return;
     var data = await res.json();
     if (!Array.isArray(data.questions) || data.questions.length === 0) return;
