@@ -58,6 +58,15 @@ main { max-width: 800px; margin: 0 auto; padding: 28px 18px 70px; }
 .sec-lbl { font-size: 10px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; display: flex; align-items: center; gap: 10px; }
 .sec-lbl::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
+/* TOPIC SELECTOR */
+.topic-selector { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; }
+.topic-chip { padding:7px 14px; border-radius:20px; border:2px solid var(--border); background:var(--warm); font-size:12px; font-weight:600; color:var(--muted); cursor:pointer; transition:all .18s; font-family:var(--sans); }
+.topic-chip:hover { border-color:var(--saffron); color:var(--saffron); }
+.topic-chip.active { background:var(--saffron); border-color:var(--saffron); color:white; }
+.topic-chip.all-chip.active { background:var(--ink); border-color:var(--ink); color:white; }
+.topic-count { font-size:10px; opacity:.7; margin-left:3px; }
+.no-topic-qs { text-align:center; padding:30px 20px; color:var(--muted); font-size:14px; }
+
 /* DRAW BTN */
 .draw-btn { width: 100%; padding: 15px; background: var(--ink); color: var(--parchment); border: none; border-radius: 12px; font-family: var(--sans); font-size: 15px; font-weight: 600; cursor: pointer; transition: all .22s; display: flex; align-items: center; justify-content: center; gap: 10px; }
 .draw-btn:hover { background: var(--saffron); transform: translateY(-1px); box-shadow: 0 8px 24px rgba(212,84,26,.2); }
@@ -508,11 +517,13 @@ function triggerInstall() {
   <!-- ══ PRACTICE ══ -->
   <div id="tab-study">
     <div class="panel">
-      <div class="sec-lbl">How it works</div>
-      <div class="hint-box">
-        🎲 Each draw randomly picks <strong>3–5 statements</strong> from your question's statement bank. The app counts how many shown statements are correct and <strong>auto-generates the MCQ answer options</strong> for you.
+      <div class="sec-lbl">Select Topic</div>
+      <div class="topic-selector" id="topic-selector">
+        <button class="topic-chip all-chip active" onclick="selectTopic('All')" id="chip-All">
+          🗂 All <span class="topic-count" id="count-All"></span>
+        </button>
       </div>
-      <button class="draw-btn" onclick="drawQuestion()">🎲 &nbsp;Draw a Random Question</button>
+      <button class="draw-btn" onclick="drawQuestion()">🎲 &nbsp;Draw from Selected Topic</button>
     </div>
     <div id="question-zone">
       <div class="empty" id="empty-state">
@@ -720,6 +731,7 @@ let answered = false;
 async function save() {
   renderStats();
   renderStorageBar();
+  renderTopicChips();
 }
 
 // ── HIDE PAGE LOADER ──────────────────────────────────────────────────────
@@ -928,31 +940,98 @@ function generateOptions(shownStmts) {
 }
 
 // ── DRAW ──────────────────────────────────────────────────────────────────
+function showImportPrompt() {
+  var zone = document.getElementById('question-zone');
+  if (!zone) return;
+  var div = document.createElement('div');
+  div.className = 'empty';
+  div.innerHTML = '<div class="ei">📂</div><h3>No questions yet</h3><p style="margin-bottom:18px;">Import your saved questions file to get started instantly.</p><p style="font-size:12px;color:var(--muted);">Select your .json file — questions load instantly</p>';
+  var btn = document.createElement('button');
+  btn.textContent = '📥 Import Questions';
+  btn.style.cssText = 'padding:14px 28px;background:var(--saffron);color:white;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:10px;font-family:var(--sans);margin-bottom:12px;';
+  var inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = '.json'; inp.style.display = 'none';
+  inp.onchange = function(e) { importQuestions(e); };
+  btn.onclick = function() { inp.click(); };
+  div.insertBefore(btn, div.lastChild);
+  div.appendChild(inp);
+  zone.innerHTML = '';
+  zone.appendChild(div);
+}
+
+let selectedTopic = 'All';
+
+function selectTopic(topic) {
+  selectedTopic = topic;
+  // Update chip styles
+  document.querySelectorAll('.topic-chip').forEach(function(c) { c.classList.remove('active'); });
+  var chip = document.getElementById('chip-' + topic.replace(/[^a-zA-Z0-9]/g,'_'));
+  if (chip) chip.classList.add('active');
+  // Reset session seen for new topic
+  session.seen = new Set();
+  // Clear question zone
+  document.getElementById('question-zone').innerHTML = '';
+  renderStats();
+}
+
+function renderTopicChips() {
+  var selector = document.getElementById('topic-selector');
+  if (!selector) return;
+  var topics = ['All'];
+  var counts = { All: S.questions.length };
+  S.questions.forEach(function(q) {
+    if (!counts[q.topic]) { counts[q.topic] = 0; topics.push(q.topic); }
+    counts[q.topic]++;
+  });
+  var topicIcons = {
+    'History':'🏛', 'Geography':'🌍', 'Polity':'⚖️', 'Economy':'📈',
+    'Science & Tech':'🔬', 'Environment':'🌿', 'Current Affairs':'📰',
+    'Ethics':'🧭', 'Art & Culture':'🎨', 'International Relations':'🌐', 'Other':'📌'
+  };
+  var html = '';
+  topics.forEach(function(t) {
+    var icon   = t === 'All' ? '🗂' : (topicIcons[t] || '📌');
+    var cls    = t === 'All' ? 'topic-chip all-chip' : 'topic-chip';
+    var id     = 'chip-' + t.replace(/[^a-zA-Z0-9]/g, '_');
+    var active = selectedTopic === t ? ' active' : '';
+    var cnt    = counts[t] || 0;
+    html += '<button class="' + cls + active + '" id="' + id + '" ';
+    html += 'onclick="selectTopicByIndex(' + topics.indexOf(t) + ')">';
+    html += icon + ' ' + t + ' <span class=\"topic-count\">(' + cnt + ')</span></button>';
+  });
+  selector.innerHTML = html;
+  window._topicList = topics;
+}
+
+function selectTopicByIndex(idx) {
+  if (!window._topicList) return;
+  selectTopic(window._topicList[idx]);
+}
+
+
 function drawQuestion() {
   if (S.questions.length === 0) {
-    document.getElementById('question-zone').innerHTML = `
-      <div class="empty">
-        <div class="ei">📂</div>
-        <h3>No questions yet</h3>
-        <p style="margin-bottom:18px;">Import your saved questions file to get started instantly.</p>
-        <button onclick="document.getElementById('quick-import-input2').click()" style="padding:14px 28px;background:var(--saffron);color:white;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:10px;font-family:var(--sans);">
-          📥 Import Questions
-        </button>
-        <input type="file" id="quick-import-input2" accept=".json" style="display:none" onchange="importQuestions(event)">
-        <p style="margin-top:14px;font-size:12px;color:var(--muted);">Select your .json file — questions load instantly</p>
-      </div>`;
+    showImportPrompt();
     return;
   }
 
-  const unseen = S.questions.filter(q => !session.seen.has(q.id));
-  const pool   = unseen.length > 0 ? unseen : S.questions;
-  currentQ     = pool[Math.floor(Math.random() * pool.length)];
+  // Filter by selected topic
+  var pool = selectedTopic === 'All' ? S.questions : S.questions.filter(function(q) { return q.topic === selectedTopic; });
+  if (pool.length === 0) {
+    var zone = document.getElementById('question-zone');
+    zone.innerHTML = '<div class="no-topic-qs">No questions found for <strong>' + selectedTopic + '</strong>.<br>Try a different topic.</div>';
+    return;
+  }
+
+  var unseen = pool.filter(function(q) { return !session.seen.has(q.id); });
+  var drawPool = unseen.length > 0 ? unseen : pool;
+  currentQ = drawPool[Math.floor(Math.random() * drawPool.length)];
   session.seen.add(currentQ.id);
-  answered     = false;
+  answered = false;
 
   // Randomly pick 3–5 statements from the bank
-  const stmts    = currentQ.statements;
-  const pickCount = Math.min(stmts.length, Math.floor(Math.random() * 3) + 3); // 3,4,5
+  const stmts = currentQ.statements;
+  const pickCount = Math.min(stmts.length, Math.floor(Math.random() * 3) + 3);
   currentShownStmts = shuffle(stmts).slice(0, pickCount);
 
   renderQuestion();
@@ -1555,6 +1634,7 @@ async function autoRestoreFromCloud() {
     S.questions = BAKED_QUESTIONS;
     renderStats();
     renderStorageBar();
+    renderTopicChips();
     var banner = document.createElement('div');
     banner.style.cssText = 'position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#F0FDF4;border:1.5px solid #BBF7D0;color:#15803D;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.12);text-align:center;';
     banner.textContent = '✅ Loaded ' + BAKED_QUESTIONS.length + ' questions from file!';
@@ -1582,10 +1662,10 @@ openDB().then(async () => {
 
   // Load all questions into memory
   S.questions = await dbGetAll();
-  // Auto-restore from cloud if local storage is empty (e.g. after cache clear)
   await autoRestoreFromCloud();
   renderStats();
   renderStorageBar();
+  renderTopicChips();
   hideLoader();
 }).catch(err => {
   console.error('IndexedDB failed:', err);
