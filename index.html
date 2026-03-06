@@ -515,10 +515,15 @@ function triggerInstall() {
       <button class="draw-btn" onclick="drawQuestion()">🎲 &nbsp;Draw a Random Question</button>
     </div>
     <div id="question-zone">
-      <div class="empty">
-        <div class="ei">📖</div>
-        <h3>Ready to practise?</h3>
-        <p>Add questions via "Add Question" or load samples, then hit Draw!</p>
+      <div class="empty" id="empty-state">
+        <div class="ei">📂</div>
+        <h3>No questions yet</h3>
+        <p style="margin-bottom:18px;">Import your saved questions file to get started instantly.</p>
+        <button onclick="document.getElementById('quick-import-input').click()" style="padding:14px 28px;background:var(--saffron);color:white;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:10px;font-family:var(--sans);">
+          📥 Import Questions
+        </button>
+        <input type="file" id="quick-import-input" accept=".json" style="display:none" onchange="importQuestions(event)">
+        <p style="margin-top:14px;font-size:12px;color:var(--muted);">Select your .json file — questions load instantly</p>
       </div>
     </div>
   </div>
@@ -596,20 +601,15 @@ function triggerInstall() {
   <!-- ══ MANAGE ══ -->
   <div id="tab-manage" style="display:none">
 
-    <!-- CLOUD SYNC -->
+    <!-- BACKUP REMINDER -->
     <div class="cloud-sync-panel" id="cloud-panel">
-      <div class="cloud-sync-title">☁️ Cloud Sync — Never Lose Questions Again</div>
+      <div class="cloud-sync-title">💡 How to Never Lose Questions</div>
       <div class="cloud-sync-desc">
-        Questions are backed up to <strong>GitHub Gist</strong> and auto-restore after any cache clear.
+        After adding questions, export your file and save it on your phone. Next time you clear cache, just import it back — takes 2 seconds.
       </div>
-      <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#15803D;">
-        ✅ Connected to GitHub Gist · 🔒 Permanently baked in
+      <div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:8px;padding:10px 13px;font-size:12px;color:#92400E;line-height:1.7;">
+        📱 <strong>Recommended:</strong> Save your <code>.json</code> backup file to <strong>Google Drive / WhatsApp Saved Messages</strong> so it's always on your phone.
       </div>
-      <div class="cloud-actions">
-        <button class="cloud-btn sync-up" onclick="cloudPush()">☁️ Save to Cloud</button>
-        <button class="cloud-btn sync-down" onclick="cloudPull()">⬇️ Restore from Cloud</button>
-      </div>
-      <div class="cloud-status" id="cloud-status"></div>
     </div>
 
     <div class="panel">
@@ -929,7 +929,20 @@ function generateOptions(shownStmts) {
 
 // ── DRAW ──────────────────────────────────────────────────────────────────
 function drawQuestion() {
-  if (S.questions.length === 0) { alert('No questions yet — add some first!'); return; }
+  if (S.questions.length === 0) {
+    document.getElementById('question-zone').innerHTML = `
+      <div class="empty">
+        <div class="ei">📂</div>
+        <h3>No questions yet</h3>
+        <p style="margin-bottom:18px;">Import your saved questions file to get started instantly.</p>
+        <button onclick="document.getElementById('quick-import-input2').click()" style="padding:14px 28px;background:var(--saffron);color:white;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:10px;font-family:var(--sans);">
+          📥 Import Questions
+        </button>
+        <input type="file" id="quick-import-input2" accept=".json" style="display:none" onchange="importQuestions(event)">
+        <p style="margin-top:14px;font-size:12px;color:var(--muted);">Select your .json file — questions load instantly</p>
+      </div>`;
+    return;
+  }
 
   const unseen = S.questions.filter(q => !session.seen.has(q.id));
   const pool   = unseen.length > 0 ? unseen : S.questions;
@@ -1459,7 +1472,14 @@ function importQuestions(event) {
 
       save();
       try { renderManage(); } catch(re) { console.warn('renderManage error (non-fatal):', re); }
-      alert('Done! ' + (choice === 'replace' ? 'Replaced with' : 'Added') + ' ' + incoming + ' question(s). Total now: ' + S.questions.length);
+
+      // Show toast and switch to practice tab
+      var toast = document.createElement('div');
+      toast.style.cssText = 'position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#15803D;color:white;padding:12px 22px;border-radius:10px;font-size:14px;font-weight:700;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.2);text-align:center;white-space:nowrap;';
+      toast.textContent = '✅ ' + S.questions.length + ' questions loaded! Ready to practise.';
+      document.body.appendChild(toast);
+      setTimeout(function() { toast.remove(); }, 3500);
+      switchTab('study');
     } catch(err) {
       alert('Could not import file.\n\nError: ' + err.message);
       console.error('Import error:', err);
@@ -1478,11 +1498,46 @@ async function clearAll() {
   renderManage();
 }
 
-// ── PUBLIC GIST CLOUD SYNC (no token needed) ─────────────────────────────────
-const GIST_ID       = '99a91225124232d6aa5fc7b2d8de494b';
-const GIST_FILENAME = 'upsc_questions.json';
-const GIST_RAW_URL  = 'https://gist.githubusercontent.com/raw/' + GIST_ID + '/' + GIST_FILENAME;
-const GIST_API_URL  = 'https://api.github.com/gists/' + GIST_ID;
+// ── EXPORT AS HTML (bake questions into file) ────────────────────────────────
+function exportAsHTML() {
+  if (S.questions.length === 0) {
+    alert('No questions to save! Please add or import questions first.');
+    return;
+  }
+  setCloudStatus('🔄 Generating file with ' + S.questions.length + ' questions baked in…', 'info');
+
+  try {
+    // Get the current HTML source
+    var html = document.documentElement.outerHTML;
+
+    // Prepare the questions JSON to bake in
+    var questionsJSON = JSON.stringify(S.questions);
+
+    // Replace or insert the BAKED_QUESTIONS constant
+    var bakedLine = 'const BAKED_QUESTIONS = ' + questionsJSON + ';';
+
+    if (html.indexOf('const BAKED_QUESTIONS =') !== -1) {
+      // Replace existing baked questions
+      html = html.replace(/const BAKED_QUESTIONS = \[[\s\S]*?\];/, bakedLine);
+    } else {
+      // Insert after first const DIFF_COLORS line
+      html = html.replace('const DIFF_COLORS =', bakedLine + '\nconst DIFF_COLORS =');
+    }
+
+    // Download the file
+    var blob = new Blob([html], { type: 'text/html' });
+    var url  = URL.createObjectURL(blob);
+    var a    = document.createElement('a');
+    a.href     = url;
+    a.download = 'upsc_prep.html';
+    a.click();
+    URL.revokeObjectURL(url);
+
+    setCloudStatus('✅ Downloaded! Upload this upsc_prep.html to GitHub. Questions are baked inside permanently.', 'ok');
+  } catch(e) {
+    setCloudStatus('❌ Failed: ' + e.message, 'err');
+  }
+}
 
 function setCloudStatus(msg, type) {
   var el = document.getElementById('cloud-status');
@@ -1491,80 +1546,22 @@ function setCloudStatus(msg, type) {
   el.className = 'cloud-status ' + type;
 }
 
-async function cloudPush() {
-  if (S.questions.length === 0) { alert('No questions to save!'); return; }
-  setCloudStatus('🔄 Saving ' + S.questions.length + ' questions to cloud…', 'info');
-  try {
-    var payload = JSON.stringify({ version:1, savedAt: new Date().toISOString(), questions: S.questions });
-    var res = await fetch(GIST_API_URL, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/vnd.github.v3+json' },
-      body: JSON.stringify({ files: { [GIST_FILENAME]: { content: payload } } })
-    });
-    if (!res.ok) {
-      var err = await res.json();
-      throw new Error(err.message || 'Error ' + res.status);
-    }
-    var ts = new Date().toLocaleTimeString();
-    setCloudStatus('✅ ' + S.questions.length + ' questions saved at ' + ts + '!', 'ok');
-  } catch(e) {
-    setCloudStatus('❌ Save failed: ' + e.message, 'err');
-  }
-}
-
-async function cloudPull() {
-  setCloudStatus('🔄 Restoring from cloud…', 'info');
-  try {
-    // Use raw URL with cache buster to always get latest
-    var res = await fetch(GIST_RAW_URL + '?t=' + Date.now());
-    if (!res.ok) throw new Error('Could not fetch backup (status ' + res.status + ')');
-    var data = await res.json();
-    if (!Array.isArray(data.questions)) throw new Error('No questions found in backup.');
-    var incoming = data.questions.length;
-    var existing = S.questions.length;
-    var choice = 'replace';
-    if (existing > 0) {
-      var ok = confirm('Found ' + incoming + ' question(s) in cloud.\nYou have ' + existing + ' locally.\n\nOK = Add to existing\nCancel = Replace all with cloud');
-      choice = ok ? 'add' : 'replace';
-      if (choice === 'replace' && !confirm('Replace ALL local questions with cloud backup?')) return;
-    }
-    if (choice === 'replace') {
-      await dbClear();
-      await dbPutMany(data.questions);
-      S.questions = data.questions;
-    } else {
-      var existingIds = new Set(S.questions.map(function(q) { return q.id; }));
-      var newOnes = data.questions.filter(function(q) { return !existingIds.has(q.id); });
-      await dbPutMany(newOnes);
-      S.questions = S.questions.concat(newOnes);
-    }
-    save();
-    try { renderManage(); } catch(e) {}
-    var ts = data.savedAt ? new Date(data.savedAt).toLocaleString() : '';
-    setCloudStatus('✅ Restored ' + S.questions.length + ' questions' + (ts ? ' (saved ' + ts + ')' : '') + '.', 'ok');
-  } catch(e) {
-    setCloudStatus('❌ Restore failed: ' + e.message, 'err');
-  }
-}
-
+// Load baked questions on startup if IndexedDB is empty
 async function autoRestoreFromCloud() {
   if (S.questions.length > 0) return;
+  if (typeof BAKED_QUESTIONS === 'undefined' || !Array.isArray(BAKED_QUESTIONS) || BAKED_QUESTIONS.length === 0) return;
   try {
-    var res = await fetch(GIST_RAW_URL + '?t=' + Date.now());
-    if (!res.ok) return;
-    var data = await res.json();
-    if (!Array.isArray(data.questions) || data.questions.length === 0) return;
-    await dbPutMany(data.questions);
-    S.questions = data.questions;
+    await dbPutMany(BAKED_QUESTIONS);
+    S.questions = BAKED_QUESTIONS;
     renderStats();
     renderStorageBar();
     var banner = document.createElement('div');
     banner.style.cssText = 'position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#F0FDF4;border:1.5px solid #BBF7D0;color:#15803D;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.12);text-align:center;';
-    banner.textContent = '☁️ Auto-restored ' + data.questions.length + ' questions from cloud!';
+    banner.textContent = '✅ Loaded ' + BAKED_QUESTIONS.length + ' questions from file!';
     document.body.appendChild(banner);
-    setTimeout(function() { banner.remove(); }, 5000);
+    setTimeout(function() { banner.remove(); }, 4000);
   } catch(e) {
-    console.log('Auto-restore failed:', e.message);
+    console.log('Baked restore failed:', e.message);
   }
 }
 
