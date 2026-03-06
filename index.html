@@ -600,45 +600,15 @@ function triggerInstall() {
     <div class="cloud-sync-panel" id="cloud-panel">
       <div class="cloud-sync-title">☁️ Cloud Sync — Never Lose Questions Again</div>
       <div class="cloud-sync-desc">
-        Save your questions to <strong>GitHub Gist</strong> — free, private, and survives browser cache clears.
-        Your questions sync to the cloud and reload automatically next time.
+        Questions are backed up to <strong>GitHub Gist</strong> and auto-restore after any cache clear.
       </div>
-
-      <!-- Connected state -->
-      <div class="cloud-connected-info" id="cloud-connected-info">
-        ✅ Connected to GitHub Gist · <span id="bake-status"></span>
+      <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#15803D;">
+        ✅ Connected to GitHub Gist · 🔒 Permanently baked in
       </div>
-
-      <!-- Token input (shown when not connected) -->
-      <div id="cloud-token-section">
-        <div class="cloud-token-row">
-          <input type="password" class="cloud-token-input" id="cloud-token-input"
-            placeholder="Paste your GitHub Personal Access Token (gist scope)">
-          <button class="cloud-btn save-token" onclick="saveCloudToken()">Connect</button>
-        </div>
-        <button class="toggle-guide-btn" onclick="toggleGuide()">📖 How to get a free token?</button>
-        <div id="cloud-setup-guide">
-          <br>
-          <div class="cloud-setup-step">
-            <strong>Step 1:</strong> Go to <a href="https://github.com/settings/tokens/new" target="_blank">github.com/settings/tokens/new</a><br>
-            <strong>Step 2:</strong> Give it a name like <code>upsc-prep</code><br>
-            <strong>Step 3:</strong> Under <em>Scopes</em>, check only <code>gist</code><br>
-            <strong>Step 4:</strong> Click <em>Generate token</em> and copy it<br>
-            <strong>Step 5:</strong> Paste it above and click <em>Connect</em>
-          </div>
-          <div class="cloud-setup-step" style="background:#FFF7ED;border-color:#FED7AA;">
-            🔒 <strong>Your token is stored only on this device</strong> (in localStorage). It never leaves your browser except to talk to GitHub's API directly.
-          </div>
-        </div>
-      </div>
-
-      <!-- Sync actions (shown when connected) -->
-      <div class="cloud-actions" id="cloud-actions" style="display:none">
+      <div class="cloud-actions">
         <button class="cloud-btn sync-up" onclick="cloudPush()">☁️ Save to Cloud</button>
         <button class="cloud-btn sync-down" onclick="cloudPull()">⬇️ Restore from Cloud</button>
-        <button class="cloud-btn forget" onclick="forgetToken()">✕ Disconnect</button>
       </div>
-
       <div class="cloud-status" id="cloud-status"></div>
     </div>
 
@@ -1401,7 +1371,7 @@ function switchTab(t) {
     btn.classList.toggle('active', ['study','add','manage'][i]===t);
   });
   if (t==='add')    { renderStmtBuilder(); }
-  if (t==='manage') { renderManage(); updateCloudUI(); var _gid=getGistId(); var _tok=getCloudToken(); if(_tok && _gid && !BAKED_TOKEN) showBakeInstructions(_tok,_gid); }
+  if (t==='manage') { renderManage(); }
 }
 
 
@@ -1509,249 +1479,128 @@ async function clearAll() {
 }
 
 // ── GITHUB GIST CLOUD SYNC ────────────────────────────────────────────────
-const GIST_FILENAME = 'upsc_prep_questions.json';
-const CLOUD_TOKEN_KEY   = 'upsc_gist_token';
+const GIST_FILENAME     = 'upsc_prep_questions.json';
 const CLOUD_GIST_ID_KEY = 'upsc_gist_id';
 
-// ═══════════════════════════════════════════════════════════════════
-// PERMANENT BACKUP — Fill these in ONCE after your first cloud save.
-// These are baked into the file, so they survive ALL cache clears.
-// Step 1: Connect token in Manage tab → Save to Cloud
-// Step 2: Copy token + Gist ID shown below and paste them here
-// Step 3: Re-upload this file to GitHub — done forever!
-// ═══════════════════════════════════════════════════════════════════
-const BAKED_TOKEN   = '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';
+// Token and Gist ID are baked directly into the file — survive all cache clears
+const BAKED_TOKEN   = 'PASTE_YOUR_TOKEN_HERE';
 const BAKED_GIST_ID = 'b0991ca4957e89d5476939551418d898';
 
-function getCloudToken() {
-  try { return localStorage.getItem(CLOUD_TOKEN_KEY) || BAKED_TOKEN || ''; }
-  catch(e) { return BAKED_TOKEN || ''; }
-}
+function getCloudToken() { return BAKED_TOKEN; }
 function getGistId() {
-  try { return localStorage.getItem(CLOUD_GIST_ID_KEY) || BAKED_GIST_ID || ''; }
-  catch(e) { return BAKED_GIST_ID || ''; }
+  try { return localStorage.getItem(CLOUD_GIST_ID_KEY) || BAKED_GIST_ID; }
+  catch(e) { return BAKED_GIST_ID; }
 }
 
 function setCloudStatus(msg, type) {
-  const el = document.getElementById('cloud-status');
+  var el = document.getElementById('cloud-status');
   if (!el) return;
   el.textContent = msg;
   el.className = 'cloud-status ' + type;
 }
 
-function toggleGuide() {
-  const g = document.getElementById('cloud-setup-guide');
-  g.style.display = g.style.display === 'none' || g.style.display === '' ? 'block' : 'none';
-}
-
-function updateCloudUI() {
-  const token = getCloudToken();
-  const tokenSection = document.getElementById('cloud-token-section');
-  const actions = document.getElementById('cloud-actions');
-  const connectedInfo = document.getElementById('cloud-connected-info');
-  if (token) {
-    if (tokenSection) tokenSection.style.display = 'none';
-    if (actions) actions.style.display = 'flex';
-    if (connectedInfo) connectedInfo.style.display = 'block';
-    // Show bake status
-    var bakeEl = document.getElementById('bake-status');
-    if (bakeEl) {
-      if (BAKED_TOKEN && BAKED_GIST_ID) {
-        bakeEl.textContent = '🔒 Permanently baked in — survives all cache clears!';
-        bakeEl.style.color = '#15803D';
-      } else {
-        bakeEl.innerHTML = '⚠️ <strong>Not permanent yet</strong> — click Save to Cloud, then follow instructions to bake in.';
-        bakeEl.style.color = '#92400E';
-      }
-    }
-  } else {
-    if (tokenSection) tokenSection.style.display = 'block';
-    if (actions) actions.style.display = 'none';
-    if (connectedInfo) connectedInfo.style.display = 'none';
-  }
-}
-
-async function saveCloudToken() {
-  const input = document.getElementById('cloud-token-input');
-  const token = (input.value || '').trim();
-  if (!token) { alert('Please paste your GitHub token first.'); return; }
-  setCloudStatus('🔄 Verifying token…', 'info');
-  // Verify token works by fetching user info
-  try {
-    const res = await fetch('https://api.github.com/user', {
-      headers: { Authorization: 'token ' + token, Accept: 'application/vnd.github.v3+json' }
-    });
-    if (!res.ok) throw new Error('Invalid token (status ' + res.status + ')');
-    const user = await res.json();
-    localStorage.setItem(CLOUD_TOKEN_KEY, token);
-    input.value = '';
-    setCloudStatus('✅ Connected as @' + user.login + '! Now click "Save to Cloud" to backup your questions.', 'ok');
-    updateCloudUI();
-  } catch(e) {
-    setCloudStatus('❌ ' + e.message + ' — Make sure the token has "gist" scope.', 'err');
-  }
-}
-
-function forgetToken() {
-  if (!confirm('Disconnect from GitHub? Your local questions will not be deleted.')) return;
-  localStorage.removeItem(CLOUD_TOKEN_KEY);
-  localStorage.removeItem(CLOUD_GIST_ID_KEY);
-  updateCloudUI();
-  setCloudStatus('Disconnected.', 'info');
-}
-
 async function cloudPush() {
-  const token = getCloudToken();
-  if (!token) { alert('Please connect your GitHub token first.'); return; }
+  var token = getCloudToken();
+  if (!token) { alert('No token configured.'); return; }
   if (S.questions.length === 0) { alert('No questions to save!'); return; }
   setCloudStatus('🔄 Saving ' + S.questions.length + ' questions to cloud…', 'info');
-  const content = JSON.stringify({ version:1, savedAt: new Date().toISOString(), questions: S.questions }, null, 2);
-  const gistId = getGistId();
+  var content = JSON.stringify({ version:1, savedAt: new Date().toISOString(), questions: S.questions }, null, 2);
+  var gistId = getGistId();
   try {
-    let res, data;
+    var res, data;
     if (gistId) {
-      // Update existing gist
       res = await fetch('https://api.github.com/gists/' + gistId, {
         method: 'PATCH',
-        headers: { Authorization: 'token ' + token, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
-        body: JSON.stringify({ files: { [GIST_FILENAME]: { content } } })
+        headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ files: { [GIST_FILENAME]: { content: content } } })
       });
     } else {
-      // Create new gist
       res = await fetch('https://api.github.com/gists', {
         method: 'POST',
-        headers: { Authorization: 'token ' + token, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description: 'UPSC Prep — Question Bank', public: false, files: { [GIST_FILENAME]: { content } } })
+        headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: 'UPSC Prep Question Bank', public: false, files: { [GIST_FILENAME]: { content: content } } })
       });
     }
     if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.message || 'GitHub API error ' + res.status);
+      var err = await res.json();
+      throw new Error(err.message || 'GitHub error ' + res.status);
     }
     data = await res.json();
-    localStorage.setItem(CLOUD_GIST_ID_KEY, data.id);
-    const ts = new Date().toLocaleTimeString();
-    showBakeInstructions(token, data.id);
-    setCloudStatus('✅ ' + S.questions.length + ' questions saved to cloud at ' + ts + '!', 'ok');
+    try { localStorage.setItem(CLOUD_GIST_ID_KEY, data.id); } catch(e) {}
+    var ts = new Date().toLocaleTimeString();
+    setCloudStatus('✅ ' + S.questions.length + ' questions saved at ' + ts + '!', 'ok');
   } catch(e) {
     setCloudStatus('❌ Save failed: ' + e.message, 'err');
   }
 }
 
 async function cloudPull() {
-  const token = getCloudToken();
-  if (!token) { alert('Please connect your GitHub token first.'); return; }
-  const gistId = getGistId();
-  if (!gistId) { setCloudStatus('⚠️ No cloud backup found yet. Add questions and click "Save to Cloud" first.', 'info'); return; }
+  var token = getCloudToken();
+  var gistId = getGistId();
+  if (!gistId) { setCloudStatus('⚠️ No cloud backup found yet. Click Save to Cloud first.', 'info'); return; }
   setCloudStatus('🔄 Restoring from cloud…', 'info');
   try {
-    const res = await fetch('https://api.github.com/gists/' + gistId, {
-      headers: { Authorization: 'token ' + token, Accept: 'application/vnd.github.v3+json' }
+    var res = await fetch('https://api.github.com/gists/' + gistId, {
+      headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' }
     });
-    if (!res.ok) throw new Error('Could not fetch gist (status ' + res.status + ')');
-    const gist = await res.json();
-    const fileContent = gist.files[GIST_FILENAME]?.content;
+    if (!res.ok) throw new Error('Could not fetch backup (status ' + res.status + ')');
+    var gist = await res.json();
+    var fileContent = gist.files[GIST_FILENAME] && gist.files[GIST_FILENAME].content;
     if (!fileContent) throw new Error('No questions found in cloud backup.');
-    const data = JSON.parse(fileContent);
+    var data = JSON.parse(fileContent);
     if (!Array.isArray(data.questions)) throw new Error('Invalid backup format.');
-    const incoming = data.questions.length;
-    const existing = S.questions.length;
-    let choice = 'replace';
+    var incoming = data.questions.length;
+    var existing = S.questions.length;
+    var choice = 'replace';
     if (existing > 0) {
-      const ok = confirm('Found ' + incoming + ' question(s) in cloud.\nYou have ' + existing + ' locally.\n\nOK = Add cloud questions to existing\nCancel = Replace all local with cloud');
+      var ok = confirm('Found ' + incoming + ' question(s) in cloud.\nYou have ' + existing + ' locally.\n\nOK = Add to existing\nCancel = Replace all with cloud');
       choice = ok ? 'add' : 'replace';
-      if (choice === 'replace' && !confirm('Replace ALL local questions with cloud backup? This cannot be undone.')) return;
+      if (choice === 'replace' && !confirm('Replace ALL local questions with cloud backup?')) return;
     }
     if (choice === 'replace') {
       await dbClear();
       await dbPutMany(data.questions);
       S.questions = data.questions;
     } else {
-      const existingIds = new Set(S.questions.map(q => q.id));
-      const newOnes = data.questions.filter(q => !existingIds.has(q.id));
+      var existingIds = new Set(S.questions.map(function(q) { return q.id; }));
+      var newOnes = data.questions.filter(function(q) { return !existingIds.has(q.id); });
       await dbPutMany(newOnes);
-      S.questions = [...S.questions, ...newOnes];
+      S.questions = S.questions.concat(newOnes);
     }
     save();
-    renderManage();
-    const ts = data.savedAt ? new Date(data.savedAt).toLocaleString() : 'unknown time';
-    setCloudStatus('✅ Restored ' + S.questions.length + ' questions from cloud (saved ' + ts + ').', 'ok');
+    try { renderManage(); } catch(e) {}
+    var ts = data.savedAt ? new Date(data.savedAt).toLocaleString() : '';
+    setCloudStatus('✅ Restored ' + S.questions.length + ' questions' + (ts ? ' (saved ' + ts + ')' : '') + '.', 'ok');
   } catch(e) {
     setCloudStatus('❌ Restore failed: ' + e.message, 'err');
   }
 }
 
-// ── SHOW BAKE INSTRUCTIONS ────────────────────────────────────────────────
-function showBakeInstructions(token, gistId) {
-  if (BAKED_TOKEN && BAKED_GIST_ID) return; // already permanent
-  var existing = document.getElementById('bake-instructions');
-  if (existing) existing.remove();
-
-  var box = document.createElement('div');
-  box.id = 'bake-instructions';
-  box.style.cssText = 'position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#1E3A5F;color:#fff;padding:20px 24px;border-radius:14px;font-size:13px;z-index:99999;box-shadow:0 8px 32px rgba(0,0,0,.4);max-width:92vw;width:440px;line-height:1.7;';
-
-  var line1 = "const BAKED_TOKEN = '" + token + "';";
-  var line2 = "const BAKED_GIST_ID = '" + gistId + "';";
-  var codeText = line1 + "\n" + line2;
-
-  box.innerHTML =
-    '<div style="font-weight:700;font-size:15px;margin-bottom:12px;">🔐 One-time setup — make restore permanent</div>' +
-    '<div style="margin-bottom:10px;">Open <b>index.html</b> in any text editor. Find these 2 lines and replace them with the lines below:</div>' +
-    '<div style="background:rgba(0,0,0,.35);border-radius:8px;padding:10px 12px;font-family:monospace;font-size:11px;margin-bottom:8px;word-break:break-all;">' +
-      'const BAKED_TOKEN = \'\';<br>const BAKED_GIST_ID = \'\';' +
-    '</div>' +
-    '<div style="margin-bottom:6px;">↓ Replace with:</div>' +
-    '<div style="background:#0F3460;border:1px solid #3B82F6;border-radius:8px;padding:10px 12px;font-family:monospace;font-size:11px;margin-bottom:14px;word-break:break-all;">' +
-      line1.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '<br>' +
-      line2.replace(/</g,'&lt;').replace(/>/g,'&gt;') +
-    '</div>' +
-    '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
-      '<button id="bake-copy-btn" style="padding:8px 16px;background:#16A34A;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">📋 Copy 2 lines</button>' +
-      '<button id="bake-close-btn" style="padding:8px 16px;background:rgba(255,255,255,.15);color:white;border:none;border-radius:8px;font-size:13px;cursor:pointer;">Close</button>' +
-    '</div>' +
-    '<div style="margin-top:10px;font-size:11px;opacity:.7;">After pasting, save &amp; re-upload to GitHub. Questions will restore forever after any cache clear.</div>';
-
-  document.body.appendChild(box);
-
-  document.getElementById('bake-copy-btn').addEventListener('click', function() {
-    navigator.clipboard.writeText(codeText).then(function() {
-      alert('Copied! Paste into index.html replacing the two BAKED_ lines, then re-upload to GitHub.');
-    }).catch(function() {
-      prompt('Copy manually:', codeText);
-    });
-  });
-  document.getElementById('bake-close-btn').addEventListener('click', function() {
-    box.remove();
-  });
-}
-
-// Auto-restore from cloud on startup if IndexedDB is empty and gist exists// Auto-restore from cloud on startup if IndexedDB is empty and gist exists
 async function autoRestoreFromCloud() {
-  const token = getCloudToken();
-  const gistId = getGistId();
-  if (!token || !gistId || S.questions.length > 0) return;
+  if (S.questions.length > 0) return; // already have questions
+  var token = getCloudToken();
+  var gistId = getGistId();
+  if (!token || !gistId) return;
   try {
-    const res = await fetch('https://api.github.com/gists/' + gistId, {
-      headers: { Authorization: 'token ' + token, Accept: 'application/vnd.github.v3+json' }
+    var res = await fetch('https://api.github.com/gists/' + gistId, {
+      headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' }
     });
     if (!res.ok) return;
-    const gist = await res.json();
-    const fileContent = gist.files[GIST_FILENAME]?.content;
+    var gist = await res.json();
+    var fileContent = gist.files[GIST_FILENAME] && gist.files[GIST_FILENAME].content;
     if (!fileContent) return;
-    const data = JSON.parse(fileContent);
+    var data = JSON.parse(fileContent);
     if (!Array.isArray(data.questions) || data.questions.length === 0) return;
     await dbPutMany(data.questions);
     S.questions = data.questions;
     renderStats();
     renderStorageBar();
-    const ts = data.savedAt ? new Date(data.savedAt).toLocaleString() : '';
-    // Show a subtle banner
-    const banner = document.createElement('div');
-    banner.style.cssText = 'position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#F0FDF4;border:1.5px solid #BBF7D0;color:#15803D;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.12);';
-    banner.textContent = '☁️ Auto-restored ' + data.questions.length + ' questions from cloud' + (ts ? ' (saved '+ts+')' : '') + '!';
+    var ts = data.savedAt ? new Date(data.savedAt).toLocaleString() : '';
+    var banner = document.createElement('div');
+    banner.style.cssText = 'position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#F0FDF4;border:1.5px solid #BBF7D0;color:#15803D;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.12);text-align:center;';
+    banner.textContent = '☁️ Auto-restored ' + data.questions.length + ' questions from cloud!';
     document.body.appendChild(banner);
-    setTimeout(() => banner.remove(), 5000);
+    setTimeout(function() { banner.remove(); }, 5000);
   } catch(e) {
     console.log('Auto-restore failed:', e.message);
   }
@@ -1778,7 +1627,6 @@ openDB().then(async () => {
   await autoRestoreFromCloud();
   renderStats();
   renderStorageBar();
-  updateCloudUI();
   hideLoader();
 }).catch(err => {
   console.error('IndexedDB failed:', err);
