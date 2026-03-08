@@ -311,6 +311,26 @@ main { max-width: 800px; margin: 0 auto; padding: 28px 18px 70px; }
   display: flex; align-items: center; justify-content: center;
 }
 
+/* MANAGE TOPIC FILTER */
+.manage-filter-wrap { margin-bottom: 14px; }
+.manage-filter-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 12px; }
+.mf-chip {
+  padding: 6px 13px; border-radius: 18px;
+  border: 2px solid var(--border); background: var(--warm);
+  font-size: 12px; font-weight: 600; color: var(--muted);
+  cursor: pointer; transition: all .18s; font-family: var(--sans);
+  display: flex; align-items: center; gap: 5px;
+}
+.mf-chip:hover { border-color: var(--saffron); color: var(--saffron); }
+.mf-chip.active { background: var(--saffron); border-color: var(--saffron); color: white; }
+.mf-chip.all-mf.active { background: var(--ink); border-color: var(--ink); color: white; }
+.mf-count { font-size: 10px; opacity: .75; }
+.manage-search-row { display: flex; gap: 8px; align-items: center; margin-bottom: 4px; }
+.manage-search { flex: 1; padding: 9px 13px; background: var(--warm); border: 1.5px solid var(--border); border-radius: 10px; font-family: var(--sans); font-size: 13px; color: var(--ink); outline: none; transition: border-color .2s; }
+.manage-search:focus { border-color: var(--saffron); background: white; }
+.manage-search-clear { padding: 9px 13px; background: var(--warm); border: 1.5px solid var(--border); border-radius: 10px; font-size: 13px; cursor: pointer; color: var(--muted); transition: all .2s; }
+.manage-search-clear:hover { background: #FEF2F2; border-color: #FECACA; color: #DC2626; }
+
 /* CLOUD SYNC */
 .cloud-sync-panel { background: linear-gradient(135deg,#EFF6FF,#F0FDF4); border: 1.5px solid #BFDBFE; border-radius: 14px; padding: 18px 20px; margin-bottom: 18px; }
 .cloud-sync-title { font-size: 13px; font-weight: 700; color: #1E40AF; margin-bottom: 4px; display:flex; align-items:center; gap:7px; }
@@ -638,7 +658,22 @@ function triggerInstall() {
       </div>
     </div>
     <div class="panel">
-      <div class="sec-lbl">All Questions (<span id="manage-count">0</span>)</div>
+      <div class="sec-lbl">Browse &amp; Edit Questions (<span id="manage-count">0</span>)</div>
+
+      <!-- Topic filter chips -->
+      <div class="manage-filter-wrap">
+        <div class="manage-filter-chips" id="manage-topic-chips">
+          <button class="mf-chip all-mf active" onclick="setManageFilter('All')" id="mf-chip-All">
+            🗂 All <span class="mf-count" id="mf-count-All"></span>
+          </button>
+        </div>
+        <!-- Search bar -->
+        <div class="manage-search-row">
+          <input class="manage-search" id="manage-search" type="text" placeholder="🔍 Search questions…" oninput="renderManage()">
+          <button class="manage-search-clear" onclick="clearManageSearch()" title="Clear search">✕</button>
+        </div>
+      </div>
+
       <div id="manage-list"></div>
     </div>
   </div>
@@ -732,6 +767,7 @@ async function save() {
   renderStats();
   renderStorageBar();
   renderTopicChips();
+  renderManageTopicChips();
 }
 
 // ── HIDE PAGE LOADER ──────────────────────────────────────────────────────
@@ -1322,17 +1358,89 @@ async function loadSamples() {
 }
 
 // ── MANAGE ────────────────────────────────────────────────────────────────
+let manageTopicFilter = 'All';
+
+function setManageFilter(topic) {
+  manageTopicFilter = topic;
+  // Update chip active states
+  document.querySelectorAll('.mf-chip').forEach(function(c) {
+    c.classList.toggle('active', c.id === 'mf-chip-' + topic.replace(/\s/g,'_'));
+  });
+  renderManage();
+}
+
+function clearManageSearch() {
+  var s = document.getElementById('manage-search');
+  if (s) { s.value = ''; renderManage(); }
+}
+
+function renderManageTopicChips() {
+  const chips = document.getElementById('manage-topic-chips');
+  if (!chips) return;
+
+  // Count per topic
+  const counts = {};
+  S.questions.forEach(function(q) {
+    counts[q.topic] = (counts[q.topic] || 0) + 1;
+  });
+  const topics = Object.keys(counts).sort();
+
+  // Rebuild chips
+  chips.innerHTML = `
+    <button class="mf-chip all-mf ${manageTopicFilter === 'All' ? 'active' : ''}"
+      onclick="setManageFilter('All')" id="mf-chip-All">
+      🗂 All <span class="mf-count">(${S.questions.length})</span>
+    </button>` +
+    topics.map(function(t) {
+      const isActive = manageTopicFilter === t;
+      const safeId   = t.replace(/\s/g,'_');
+      return `<button class="mf-chip ${isActive ? 'active' : ''}"
+        onclick="setManageFilter('${t}')" id="mf-chip-${safeId}">
+        ${t} <span class="mf-count">(${counts[t]})</span>
+      </button>`;
+    }).join('');
+}
+
 function renderManage() {
   renderStorageBar();
-  document.getElementById('manage-count').textContent = S.questions.length;
+  renderManageTopicChips();
+
+  const searchEl = document.getElementById('manage-search');
+  const query    = searchEl ? searchEl.value.trim().toLowerCase() : '';
+
+  // Filter questions
+  const filtered = S.questions.filter(function(q, i) {
+    const topicMatch = manageTopicFilter === 'All' || q.topic === manageTopicFilter;
+    const searchMatch = !query ||
+      q.stem.toLowerCase().includes(query) ||
+      q.topic.toLowerCase().includes(query) ||
+      (q.explanation || '').toLowerCase().includes(query) ||
+      q.statements.some(function(s) { return s.text.toLowerCase().includes(query); });
+    return topicMatch && searchMatch;
+  });
+
+  document.getElementById('manage-count').textContent =
+    filtered.length < S.questions.length
+      ? filtered.length + ' of ' + S.questions.length
+      : S.questions.length;
+
   const list = document.getElementById('manage-list');
   if (S.questions.length === 0) {
     list.innerHTML = '<div class="empty"><div class="ei">📭</div><h3>No questions yet</h3></div>';
     return;
   }
-  list.innerHTML = S.questions.map((q,i) => {
-    const tc = q.statements.filter(s=>s.correct).length;
-    const tw = q.statements.filter(s=>!s.correct).length;
+  if (filtered.length === 0) {
+    list.innerHTML = `<div style="text-align:center;padding:30px 20px;color:var(--muted);font-size:14px;">
+      😕 No questions match <strong>${manageTopicFilter !== 'All' ? manageTopicFilter : ''} ${query ? '"'+query+'"' : ''}</strong>
+    </div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(function(q) {
+    // Find real index in S.questions for edit/delete
+    const realIdx = S.questions.indexOf(q);
+    const tc = q.statements.filter(function(s){return s.correct;}).length;
+    const tw = q.statements.filter(function(s){return !s.correct;}).length;
     return `
     <div class="q-item">
       <div class="q-item-top">
@@ -1345,16 +1453,17 @@ function renderManage() {
           </div>
           <div class="q-question-text">${q.stem}</div>
           <div class="q-stmts-preview">
-            ${q.statements.slice(0,3).map((s,si)=>`<span style="color:${s.correct?'#16A34A':'#DC2626'}">${si+1}. ${s.text.substring(0,60)}${s.text.length>60?'…':''}</span>`).join('<br>')}
+            ${q.statements.slice(0,3).map(function(s,si){return `<span style="color:${s.correct?'#16A34A':'#DC2626'}">${si+1}. ${s.text.substring(0,60)}${s.text.length>60?'…':''}</span>`;}).join('<br>')}
             ${q.statements.length > 3 ? `<br><span style="color:var(--muted)">+ ${q.statements.length-3} more statements</span>` : ''}
           </div>
         </div>
         <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
-          <button class="edit-q" onclick="editQ(${i})">✏️ Edit</button>
-          <button class="del-q" onclick="deleteQ(${i})">🗑 Delete</button>
+          <button class="edit-q" onclick="editQ(${realIdx})">✏️ Edit</button>
+          <button class="del-q" onclick="deleteQ(${realIdx})">🗑 Delete</button>
         </div>
       </div>
-    </div>`}).join('');
+    </div>`;
+  }).join('');
 }
 
 async function deleteQ(i) {
@@ -1504,20 +1613,28 @@ function importQuestions(event) {
 
       // Sanitize — strip unknown fields, fill nulls, so nothing crashes on render
       const sanitized = data.questions.map(function(q, i) {
+        if (!q || typeof q !== 'object') return null;
+        // Fix float IDs that can break IndexedDB (e.g. 1234567890.123 → integer)
+        let safeId = q.id != null ? q.id : Date.now() + i;
+        if (typeof safeId === 'number' && !Number.isInteger(safeId)) {
+          safeId = parseInt(String(safeId).replace('.',''), 10);
+        }
         return {
-          id:               q.id != null ? q.id : Date.now() + i,
+          id:               safeId,
           topic:            q.topic || 'Other',
           difficulty:       q.difficulty || 'Medium',
           stem:             q.stem || '',
           statements:       Array.isArray(q.statements)
-                              ? q.statements.map(function(s) {
-                                  return { text: s.text != null ? s.text : '', correct: !!s.correct };
-                                })
+                              ? q.statements
+                                  .filter(function(s) { return s != null && typeof s === 'object'; })
+                                  .map(function(s) {
+                                    return { text: s.text != null ? String(s.text) : '', correct: !!s.correct };
+                                  })
                               : [],
           explanation:      q.explanation || '',
           explanationImage: q.explanationImage || null
         };
-      }).filter(function(q) { return q.stem && q.statements.length >= 2; });
+      }).filter(function(q) { return q && q.stem && q.statements.length >= 2; });
 
       if (sanitized.length === 0) {
         alert('No valid questions found. Each question needs a stem and at least 2 statements.');
